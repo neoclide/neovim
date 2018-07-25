@@ -1,5 +1,5 @@
 {
-  "name": "neovim",
+  "name": "@chemzqm/neovim",
   "description": "Neovim client API and neovim remote plugin provider",
   "version": "4.3.0",
   "homepage": "https://github.com/chemzqm/node-client",
