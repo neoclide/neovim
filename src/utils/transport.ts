@@ -115,7 +115,11 @@ class Transport extends EventEmitter {
   }
 
   notify(method: string, args: any[]) {
-    this.encodeStream.write([2, method, args]);
+    this.encodeStream.write(
+      msgpack.encode([2, method, args], {
+        codec: this.codec,
+      })
+    );
   }
 
   parseMessage(msg: any[]) {
