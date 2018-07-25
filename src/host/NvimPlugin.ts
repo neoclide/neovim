@@ -1,7 +1,8 @@
 /* eslint import/export:0 */
 import { Neovim } from '../api/Neovim';
 import { Spec } from '../types/Spec';
-const logger = require('../utils/logger')('host-NvimPlugin')
+const util = require('util');
+const debug = util.debuglog('NvimPlugin');
 
 export interface NvimPluginOptions {
   dev?: boolean;
@@ -100,7 +101,7 @@ export class NvimPlugin {
   ): void;
   registerAutocmd(name: string, fn: any, options?: AutocmdOptions): void {
     if (!options.pattern) {
-      logger.error(`registerAutocmd expected pattern option for ${name}`);
+      debug(`registerAutocmd expected pattern option for ${name}`);
       return;
     }
 
@@ -123,7 +124,7 @@ export class NvimPlugin {
         spec,
       };
     } catch (err) {
-      logger.error(`registerAutocmd expected callable argument for ${name}`);
+      debug(`registerAutocmd expected callable argument for ${name}`);
     }
   }
 
@@ -153,7 +154,7 @@ export class NvimPlugin {
         spec,
       };
     } catch (err) {
-      logger.error(`registerCommand expected callable argument for ${name}`);
+      debug(`registerCommand expected callable argument for ${name}`);
     }
   }
 
@@ -187,7 +188,7 @@ export class NvimPlugin {
         spec,
       };
     } catch (err) {
-      logger.error(`registerFunction expected callable argument for ${name}`);
+      debug(`registerFunction expected callable argument for ${name}`);
     }
   }
 
@@ -221,7 +222,7 @@ export class NvimPlugin {
         const errMsg = `No handler for unknown type ${type}: "${name}" in ${
           this.filename
         }`;
-        logger.error(errMsg);
+        debug(errMsg);
         throw new Error(errMsg);
     }
 
@@ -233,14 +234,14 @@ export class NvimPlugin {
           : await handler.fn(...args);
       } catch (err) {
         const msg = `Error in plugin for ${type}:${name}: ${err.message}`;
-        logger.error(`${msg} (file: ${this.filename}, stack: ${err.stack})`);
+        debug(`${msg} (file: ${this.filename}, stack: ${err.stack})`);
         throw new Error(err);
       }
     } else {
       const errMsg = `Missing handler for ${type}: "${name}" in ${
         this.filename
       }`;
-      logger.error(errMsg);
+      debug(errMsg);
       throw new Error(errMsg);
     }
   }

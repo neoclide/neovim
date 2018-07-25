@@ -5,9 +5,10 @@ import * as vm from 'vm';
 import { omit, defaults } from '../utils/lodash';
 import { Neovim } from '../api/Neovim';
 import { DevNull } from '../utils/devnull';
+import { createLogger, ILogger } from '../utils/logger'
 
 import { NvimPlugin } from './NvimPlugin';
-const logger = require('../utils/logger')('factory')
+const debug = util.debuglog('NvimPlugin');
 
 export interface IModule {
   new (name: string): any;
@@ -75,11 +76,11 @@ function compileInSandbox(sandbox: ISandbox) {
   };
 }
 
-function createDebugFunction(filename: string) {
+function createDebugFunction(logger: ILogger, filename: string) {
   return (...args: any[]) => {
     const debugId = path.basename(filename);
     const sout = util.format.apply(null, [`[${debugId}]`].concat(args));
-    logger.info(sout);
+    logger.debug(sout);
   };
 }
 
@@ -91,6 +92,7 @@ export interface ISandbox {
 }
 
 function createSandbox(filename: string): ISandbox {
+  const logger = createLogger(path.basename(filename, '.js'))
   const module = new Module(filename);
   module.paths = Module._nodeModulePaths(filename);
 
@@ -104,7 +106,7 @@ function createSandbox(filename: string): ISandbox {
   // Redirect console calls into logger
   Object.keys(console).forEach((k: keyof Console) => {
     if (k === 'log') {
-      sandbox.console.log = createDebugFunction(filename);
+      sandbox.console.log = createDebugFunction(logger, filename);
     } else if (k in logger) {
       if (logger.hasOwnProperty(k)) {
         sandbox.console[k] = logger[k];
@@ -154,9 +156,7 @@ function createPlugin(
   try {
     const sandbox = createSandbox(filename);
 
-    logger.debug(
-      `createPlugin.${filename}.clearCache: ${options && !options.cache}`
-    );
+    debug(`createPlugin.${filename}.clearCache: ${options && !options.cache}`);
 
     // Clear module from cache
     if (options && !options.cache) {
@@ -173,8 +173,8 @@ function createPlugin(
     }
   } catch (err) {
     const file = path.basename(filename);
-    logger.error(`[${file}] ${err.stack}`);
-    logger.error(`[${file}] Error loading child ChildPlugin ${filename}`);
+    debug(`[${file}] ${err.stack}`);
+    debug(`[${file}] Error loading child ChildPlugin ${filename}`);
   }
 
   // There may have been an error, but maybe not
@@ -189,7 +189,7 @@ export function loadPlugin(
   try {
     return createPlugin(filename, nvim, options);
   } catch (err) {
-    logger.error(`Could not load plugin "${filename}":`, err, err.stack);
+    debug(`Could not load plugin "${filename}":, ${err.stack}`);
     return null;
   }
 }

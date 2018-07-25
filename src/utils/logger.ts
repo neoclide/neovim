@@ -1,35 +1,26 @@
-import * as os from 'os'
-import * as path from 'path'
-import {Logger} from 'log4js'
-const log4js = require('log4js')
+import * as util from 'util'
+const debug = util.debuglog('neovim');
 
+export interface ILogger {
+  debug: (data: string) => void
+  info: (data: string) => void
+  error: (data: string) => void
+  trace: (data: string) => void
+}
 
-const MAX_LOG_SIZE = 1024 * 1024
-const MAX_LOG_BACKUPS = 10
-
-const level = process.env.NVIM_NODE_LOG_LEVEL || 'debug';
-const LOG_FILE_PATH = process.env.NVIM_COC_LOG_FILE || path.join(os.tmpdir(), 'node-client.log')
-
-log4js.configure({
-  appenders: {
-    out: {
-      type: 'file',
-      filename: LOG_FILE_PATH,
-      maxLogSize: MAX_LOG_SIZE,
-      backups: MAX_LOG_BACKUPS,
-      layout: {
-        type: 'pattern',
-        // Format log in following pattern:
-        // yyyy-MM-dd HH:mm:ss.mil $Level (pid:$pid) $categroy - $message.
-        pattern: `%d{ISO8601} %p (pid:${process.pid}) [%c] - %m`,
-      },
+export function createLogger(name: string): ILogger {
+  return {
+    debug: (data: string): void => {
+      debug(`[debug ${name}] - ${data}`)
+    },
+    info: (data: string): void => {
+      debug(`[info ${name}] - ${data}`)
+    },
+    error: (data: string): void => {
+      debug(`[error ${name}] - ${data}`)
+    },
+    trace: (data: string): void => {
+      debug(`[trace ${name}] - ${data}`)
     }
-  },
-  categories: {
-    default: {appenders: ['out'], level}
   }
-})
-
-module.exports = (name: string): Logger => {
-  return log4js.getLogger(name)
 }

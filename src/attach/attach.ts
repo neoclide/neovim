@@ -1,8 +1,7 @@
 import { createConnection } from 'net';
 import * as child from 'child_process';
-
 import { NeovimClient } from './../api/client';
-const logger = require('../utils/logger')('client')
+import { createLogger } from '../utils/logger'
 
 export interface Attach {
   reader?: NodeJS.ReadableStream;
@@ -33,7 +32,7 @@ export function attach({
   }
 
   if (writer && reader) {
-    const neovim = new NeovimClient({ logger });
+    const neovim = new NeovimClient({ logger: createLogger('plugin') });
     neovim.attach({
       writer,
       reader,

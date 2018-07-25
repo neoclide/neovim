@@ -1,12 +1,11 @@
 /**
  * Handles attaching transport
  */
-import { Logger } from 'log4js';
 import { Transport } from '../utils/transport';
 import { VimValue } from '../types/VimValue';
 import { Neovim } from './Neovim';
 import { Buffer } from './Buffer';
-const logger = require('../utils/logger')('api-client')
+import { createLogger, ILogger } from '../utils/logger'
 
 export class NeovimClient extends Neovim {
   protected requestQueue: Array<any>;
@@ -14,10 +13,10 @@ export class NeovimClient extends Neovim {
   private _channelId: number;
   private attachedBuffers: Map<string, Map<string, Function[]>> = new Map();
 
-  constructor(options: { transport?: Transport; logger?: Logger } = {}) {
+  constructor(options: { transport?: Transport; logger?: ILogger } = {}) {
     // Neovim has no `data` or `metadata`
     super({
-      logger: options.logger || logger,
+      logger: options.logger || createLogger('plugin'),
     });
 
     const transport = options.transport || new Transport();
@@ -33,9 +32,9 @@ export class NeovimClient extends Neovim {
     reader,
     writer,
   }: {
-    reader: NodeJS.ReadableStream;
-    writer: NodeJS.WritableStream;
-  }) {
+      reader: NodeJS.ReadableStream;
+      writer: NodeJS.WritableStream;
+    }) {
     this.transport.attach(writer, reader, this);
     this.transportAttached = true;
     this.setupTransport();
@@ -58,7 +57,7 @@ export class NeovimClient extends Neovim {
     resp: any,
     ...restArgs: any[]
   ) {
-    this.logger.debug('handleRequest: ', method, args);
+    this.logger.debug(`handleRequest: ${method}`);
     // If neovim API is not generated yet and we are not handle a 'specs' request
     // then queue up requests
     //
@@ -76,7 +75,7 @@ export class NeovimClient extends Neovim {
   emitNotification(method: string, args: any[]) {
     if (method.endsWith('_event')) {
       if (!method.startsWith('nvim_buf_')) {
-        this.logger.error('Unhandled event: ', method);
+        this.logger.error(`Unhandled event: ${method}`);
         return;
       }
       const shortName = method.replace(/nvim_buf_(.*)_event/, '$1');
@@ -103,7 +102,7 @@ export class NeovimClient extends Neovim {
   }
 
   handleNotification(method: string, args: VimValue[], ...restArgs: any[]) {
-    this.logger.info('handleNotification: ', method, args);
+    this.logger.info(`handleNotification: ${method}`);
     // If neovim API is not generated yet then queue up requests
     //
     // Otherwise emit as normal
@@ -190,9 +189,7 @@ export class NeovimClient extends Neovim {
 
         return true;
       } catch (err) {
-        this.logger.error(`Could not dynamically generate neovim API: ${err}`, {
-          error: err,
-        });
+        this.logger.error(`Could not dynamically generate neovim API: ${err.message}`);
         this.logger.error(err.stack);
         return null;
       }

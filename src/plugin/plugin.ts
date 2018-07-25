@@ -9,7 +9,8 @@ import {
   NvimFunctionOptions,
 } from '../host/NvimPlugin';
 import { Spec } from '../types/Spec';
-const logger = require('../utils/logger')('plugin-plugin')
+const util = require('util');
+const debug = util.debuglog('plugin');
 
 export { Neovim, NvimPlugin };
 
@@ -23,7 +24,6 @@ function wrapper<T extends Constructor<{}>>(
   cls: T,
   options?: PluginDecoratorOptions
 ) {
-  logger.info(`Decorating class ${cls}`);
 
   return class extends cls {
     public nvim: Neovim;
@@ -38,11 +38,9 @@ function wrapper<T extends Constructor<{}>>(
 
       // Search for decorated methods
       Object.getOwnPropertyNames(cls.prototype).forEach(methodName => {
-        logger.info(`Method name ${methodName}`);
-        logger.info(
-          `${cls.prototype[methodName]} ${typeof cls.prototype[methodName]}`
-        );
-        logger.info(`${this} ${typeof this}`);
+        debug(`Method name ${methodName}`);
+        debug(`${cls.prototype[methodName]} ${typeof cls.prototype[methodName]}`);
+        debug(`${this} ${typeof this}`);
 
         const method = cls.prototype[methodName];
         if (method && method[NVIM_SPEC]) {

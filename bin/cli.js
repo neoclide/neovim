@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 const Host = require('../lib/host').Host;
-const logger = require('../lib/utils/logger').logger;
 
 // node <current script> <rest of args>
 const [, , ...args] = process.argv;
@@ -17,9 +16,9 @@ try {
   const host = new Host(args);
   host.start({ proc: process });
 } catch (err) {
-  logger.error(err);
+  console.error(err)
 }
 
-process.on('unhandledRejection', (reason, p) => {
-  logger.info('Unhandled Rejection at:', p, 'reason:', reason);
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection at:' + JSON.stringify(reason));
 });

@@ -2,12 +2,13 @@ import { EventEmitter } from 'events';
 
 import { Transport } from '../utils/transport';
 import { VimValue } from '../types/VimValue';
-import { Logger } from 'log4js'
-const createLogger = require('../utils/logger')
+import {createLogger, ILogger} from '../utils/logger'
+import * as util from 'util'
+const debug = util.debuglog('api');
 
 export type BaseConstructorOptions = {
   transport?: Transport;
-  logger?: Logger;
+  logger?: ILogger;
   data?: Buffer;
   metadata?: any;
   client?: any;
@@ -29,7 +30,7 @@ export class BaseApi extends EventEmitter {
   protected transport: Transport;
   protected _isReady: Promise<boolean>;
   protected prefix: string;
-  public logger: Logger;
+  public logger: ILogger;
   public data: Buffer | Number; // Node Buffer
   protected client: any;
 
@@ -44,7 +45,7 @@ export class BaseApi extends EventEmitter {
 
     this.setTransport(transport);
     this.data = data;
-    this.logger = logger || createLogger('api');
+    this.logger = logger || createLogger('plugin');
     this.client = client;
 
     if (metadata) {
@@ -67,7 +68,7 @@ export class BaseApi extends EventEmitter {
   [DO_REQUEST] = (name: string, args: any[] = []): Promise<any> =>
     new Promise((resolve, reject) => {
       this.transport.request(name, args, (err: any, res: any) => {
-        this.logger.debug(`response -> neovim.api.${name}: ${res}`);
+        debug(`response -> neovim.api.${name}: ${res}`);
         if (err) {
           reject(new Error(`${name}: ${err[1]}`));
         } else {
@@ -83,7 +84,7 @@ export class BaseApi extends EventEmitter {
     // before transport is ready.
     // Not possible for ExtType classes since they are only created after transport is ready
     await this._isReady;
-    this.logger.debug(`request -> neovim.api.${name}`);
+    debug(`request -> neovim.api.${name}`);
     return this[DO_REQUEST](name, args);
   }
 
@@ -138,7 +139,7 @@ export class BaseApi extends EventEmitter {
 
   /** `request` is basically the same except you can choose to wait forpromise to be resolved */
   notify(name: string, args: any[]) {
-    this.logger.debug(`notify -> neovim.api.${name}`, args);
+    debug(`notify -> neovim.api.${name}`);
     this.transport.notify(name, args);
   }
 }
