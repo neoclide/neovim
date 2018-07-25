@@ -2,9 +2,7 @@
 import * as path from 'path';
 import * as util from 'util';
 import * as vm from 'vm';
-
-import { omit, defaults } from 'lodash';
-
+import { omit, defaults } from '../utils/lodash';
 import { Neovim } from '../api/Neovim';
 import { DevNull } from '../utils/devnull';
 

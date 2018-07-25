@@ -9,7 +9,7 @@
       true,
       "check-space"
     ],
-    "eofline": true,
+    "eofline": false,
     "indent": [
       true,
       "spaces"
