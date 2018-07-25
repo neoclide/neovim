@@ -2,7 +2,7 @@ import { createConnection } from 'net';
 import * as child from 'child_process';
 
 import { NeovimClient } from './../api/client';
-import { logger } from '../utils/logger';
+const logger = require('../utils/logger')('client')
 
 export interface Attach {
   reader?: NodeJS.ReadableStream;

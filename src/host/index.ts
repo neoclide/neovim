@@ -1,8 +1,8 @@
 import * as util from 'util';
 import { attach } from '../attach';
-import { logger } from '../utils/logger';
 import { loadPlugin, LoadPluginOptions } from './factory';
 import { NvimPlugin } from './NvimPlugin';
+const logger = require('../utils/logger')('host-index')
 
 export interface Response {
   send(resp: any, isError?: boolean): void;

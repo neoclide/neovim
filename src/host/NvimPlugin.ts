@@ -1,7 +1,7 @@
 /* eslint import/export:0 */
 import { Neovim } from '../api/Neovim';
-import { logger } from '../utils/logger';
 import { Spec } from '../types/Spec';
+const logger = require('../utils/logger')('host-NvimPlugin')
 
 export interface NvimPluginOptions {
   dev?: boolean;

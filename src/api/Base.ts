@@ -1,12 +1,13 @@
 import { EventEmitter } from 'events';
 
 import { Transport } from '../utils/transport';
-import { logger as loggerModule, ILogger } from '../utils/logger';
 import { VimValue } from '../types/VimValue';
+import { Logger } from 'log4js'
+const createLogger = require('../utils/logger')
 
 export type BaseConstructorOptions = {
   transport?: Transport;
-  logger?: ILogger;
+  logger?: Logger;
   data?: Buffer;
   metadata?: any;
   client?: any;
@@ -28,7 +29,7 @@ export class BaseApi extends EventEmitter {
   protected transport: Transport;
   protected _isReady: Promise<boolean>;
   protected prefix: string;
-  public logger: ILogger;
+  public logger: Logger;
   public data: Buffer | Number; // Node Buffer
   protected client: any;
 
@@ -43,7 +44,7 @@ export class BaseApi extends EventEmitter {
 
     this.setTransport(transport);
     this.data = data;
-    this.logger = logger || loggerModule;
+    this.logger = logger || createLogger('api');
     this.client = client;
 
     if (metadata) {

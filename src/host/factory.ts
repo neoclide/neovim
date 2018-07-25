@@ -6,10 +6,10 @@ import * as vm from 'vm';
 import { omit, defaults } from 'lodash';
 
 import { Neovim } from '../api/Neovim';
-import { logger } from '../utils/logger';
 import { DevNull } from '../utils/devnull';
 
 import { NvimPlugin } from './NvimPlugin';
+const logger = require('../utils/logger')('factory')
 
 export interface IModule {
   new (name: string): any;
@@ -108,7 +108,9 @@ function createSandbox(filename: string): ISandbox {
     if (k === 'log') {
       sandbox.console.log = createDebugFunction(filename);
     } else if (k in logger) {
-      sandbox.console[k] = logger[k];
+      if (logger.hasOwnProperty(k)) {
+        sandbox.console[k] = logger[k];
+      }
     }
   });
 
@@ -189,7 +191,7 @@ export function loadPlugin(
   try {
     return createPlugin(filename, nvim, options);
   } catch (err) {
-    // logger.error(`Could not load plugin "${filename}":`, err, err.stack);
+    logger.error(`Could not load plugin "${filename}":`, err, err.stack);
     return null;
   }
 }

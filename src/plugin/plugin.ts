@@ -1,7 +1,5 @@
 /* eslint no-shadow:0, import/export:0 */
 // Plugin decorator
-import { logger } from '../utils/logger';
-
 import { NVIM_SPEC } from './properties';
 import { Neovim } from '../api/Neovim';
 import {
@@ -11,6 +9,7 @@ import {
   NvimFunctionOptions,
 } from '../host/NvimPlugin';
 import { Spec } from '../types/Spec';
+const logger = require('../utils/logger')('plugin-plugin')
 
 export { Neovim, NvimPlugin };
 

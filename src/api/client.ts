@@ -1,11 +1,12 @@
 /**
  * Handles attaching transport
  */
-import { ILogger } from '../utils/logger';
+import { Logger } from 'log4js';
 import { Transport } from '../utils/transport';
 import { VimValue } from '../types/VimValue';
 import { Neovim } from './Neovim';
 import { Buffer } from './Buffer';
+const logger = require('../utils/logger')('api-client')
 
 export class NeovimClient extends Neovim {
   protected requestQueue: Array<any>;
@@ -13,10 +14,10 @@ export class NeovimClient extends Neovim {
   private _channelId: number;
   private attachedBuffers: Map<string, Map<string, Function[]>> = new Map();
 
-  constructor(options: { transport?: Transport; logger?: ILogger } = {}) {
+  constructor(options: { transport?: Transport; logger?: Logger } = {}) {
     // Neovim has no `data` or `metadata`
     super({
-      logger: options.logger,
+      logger: options.logger || logger,
     });
 
     const transport = options.transport || new Transport();
@@ -57,7 +58,7 @@ export class NeovimClient extends Neovim {
     resp: any,
     ...restArgs: any[]
   ) {
-    this.logger.info('handleRequest: ', method);
+    this.logger.debug('handleRequest: ', method, args);
     // If neovim API is not generated yet and we are not handle a 'specs' request
     // then queue up requests
     //
@@ -102,7 +103,7 @@ export class NeovimClient extends Neovim {
   }
 
   handleNotification(method: string, args: VimValue[], ...restArgs: any[]) {
-    this.logger.info('handleNotification: ', method);
+    this.logger.info('handleNotification: ', method, args);
     // If neovim API is not generated yet then queue up requests
     //
     // Otherwise emit as normal
