@@ -1,8 +1,8 @@
 {
-  "name": "@chemzqm/neovim",
+  "name": "neovim",
   "description": "Neovim client API and neovim remote plugin provider",
   "version": "4.3.0",
-  "homepage": "https://github.com/neovim/node-client",
+  "homepage": "https://github.com/chemzqm/node-client",
   "authors": [
     {
       "name": "Billy Vong",
@@ -22,10 +22,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/neovim/node-client"
+    "url": "https://github.com/chemzqm/node-client"
   },
   "bugs": {
-    "url": "https://github.com/neovim/node-client/issues"
+    "url": "https://github.com/chemzqm/node-client/issues"
   },
   "license": "MIT",
   "bin": {

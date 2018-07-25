@@ -136,10 +136,9 @@ export class BaseApi extends EventEmitter {
     return this.request(`${this.prefix}set_option`, args);
   }
 
-  // TODO: Is this necessary?
   /** `request` is basically the same except you can choose to wait forpromise to be resolved */
   notify(name: string, args: any[]) {
-    this.logger.debug(`notify -> neovim.api.${name}`);
+    this.logger.debug(`notify -> neovim.api.${name}`, args);
     this.transport.notify(name, args);
   }
 }
