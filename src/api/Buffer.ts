@@ -206,14 +206,15 @@ export class Buffer extends BaseApi {
     const colEnd = typeof _end !== 'undefined' ? _end : -1;
     const colStart = typeof _start !== 'undefined' ? _start : -0;
     const srcId = typeof _srcId !== 'undefined' ? _srcId : -1;
-    return this.request(`${this.prefix}add_highlight`, [
+    const method = hlGroup === '' ? 'request' : 'notify'
+    return this[method](`${this.prefix}add_highlight`, [
       this,
       srcId,
       hlGroup,
       line,
       colStart,
       colEnd,
-    ]);
+    ]) as Promise<number>;
   }
 
   /** Clears highlights from a given source group and a range of
@@ -230,7 +231,7 @@ export class Buffer extends BaseApi {
 
     const { srcId, lineStart, lineEnd } = Object.assign({}, defaults, args);
 
-    return this.request(`${this.prefix}clear_highlight`, [
+    return this.notify(`${this.prefix}clear_highlight`, [
       this,
       srcId,
       lineStart,
