@@ -233,7 +233,7 @@ export class Neovim extends BaseApi {
   }
 
   /** Call a vim function */
-  call(fname: string, args: VimValue | Array<VimValue> = [], isNotify = false) {
+  call(fname: string, args: VimValue | Array<VimValue> = [], isNotify = false): Promise<any>|null {
     const _args = Array.isArray(args) ? args : [args];
     if (isNotify) {
       this.notify(`${this.prefix}call_function`, [fname, _args]);
@@ -243,7 +243,7 @@ export class Neovim extends BaseApi {
   }
 
   /** Alias for `call` */
-  callFunction(fname: string, args: VimValue | Array<VimValue> = []) {
+  callFunction(fname: string, args: VimValue | Array<VimValue> = []): Promise<any>|null{
     return this.call(fname, args);
   }
 
@@ -253,7 +253,7 @@ export class Neovim extends BaseApi {
   }
 
   /** Runs a vim command */
-  command(arg: string, isNotify = false): Promise<any> {
+  command(arg: string, isNotify = false): Promise<any> | null {
     if (isNotify) {
       this.notify(`${this.prefix}command`, [arg]);
       return null
