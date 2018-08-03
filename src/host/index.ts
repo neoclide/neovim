@@ -2,7 +2,7 @@ import * as util from 'util';
 import { attach } from '../attach';
 import { loadPlugin, LoadPluginOptions } from './factory';
 import { NvimPlugin } from './NvimPlugin';
-const debug = util.debuglog('client-host');
+const debug = util.debuglog('nvim-host');
 
 export interface Response {
   send(resp: any, isError?: boolean): void;

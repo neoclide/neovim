@@ -8,7 +8,7 @@ import { DevNull } from '../utils/devnull';
 import { createLogger, ILogger } from '../utils/logger'
 
 import { NvimPlugin } from './NvimPlugin';
-const debug = util.debuglog('NvimPlugin');
+const debug = util.debuglog('nvim-factory');
 
 export interface IModule {
   new (name: string): any;

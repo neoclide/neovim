@@ -10,7 +10,7 @@ import {
 } from '../host/NvimPlugin';
 import { Spec } from '../types/Spec';
 const util = require('util');
-const debug = util.debuglog('plugin');
+const debug = util.debuglog('nvim-plugin');
 
 export { Neovim, NvimPlugin };
 

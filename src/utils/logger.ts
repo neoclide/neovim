@@ -1,5 +1,5 @@
 import * as util from 'util'
-const debug = util.debuglog('neovim');
+const debug = util.debuglog('nvim-logger');
 
 export interface ILogger {
   debug: (data: string) => void

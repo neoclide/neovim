@@ -2,7 +2,7 @@
 import { Neovim } from '../api/Neovim';
 import { Spec } from '../types/Spec';
 const util = require('util');
-const debug = util.debuglog('NvimPlugin');
+const debug = util.debuglog('nvim-plugin-regist');
 
 export interface NvimPluginOptions {
   dev?: boolean;

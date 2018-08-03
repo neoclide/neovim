@@ -4,7 +4,7 @@ import { Transport } from '../utils/transport';
 import { VimValue } from '../types/VimValue';
 import {createLogger, ILogger} from '../utils/logger'
 import * as util from 'util'
-const debug = util.debuglog('api');
+const debug = util.debuglog('nvim-api');
 
 export type BaseConstructorOptions = {
   transport?: Transport;
