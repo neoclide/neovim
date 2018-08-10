@@ -9,12 +9,14 @@ import * as msgpack from 'msgpack-lite';
 import Buffered from './buffered';
 import { Metadata } from '../api/types';
 
+export type Check = ()=>boolean
+
 class Response {
   private requestId: number;
   private sent: boolean;
   private encoder: NodeJS.WritableStream;
 
-  constructor(encoder: NodeJS.WritableStream, requestId: number) {
+  constructor(encoder: NodeJS.WritableStream, requestId: number, private check:Check) {
     this.encoder = encoder;
     this.requestId = requestId;
   }
@@ -23,6 +25,7 @@ class Response {
     if (this.sent) {
       throw new Error(`Response to id ${this.requestId} already sent`);
     }
+    if (!this.check()) return
     this.encoder.write(
       msgpack.encode([
         1,
@@ -43,6 +46,7 @@ class Transport extends EventEmitter {
   private reader: NodeJS.ReadableStream;
   private writer: NodeJS.WritableStream;
   protected codec: msgpack.Codec;
+  private attached = true
 
   // Neovim client that holds state
   private client: any;
@@ -100,11 +104,13 @@ class Transport extends EventEmitter {
   }
 
   detach() {
+    this.attached = false
     this.encodeStream.unpipe(this.writer);
     this.reader.unpipe(this.decodeStream);
   }
 
   request(method: string, args: any[], cb: Function) {
+    if (!this.attached) return cb()
     this.nextRequestId = this.nextRequestId + 1;
     this.encodeStream.write(
       msgpack.encode([0, this.nextRequestId, method, args], {
@@ -115,6 +121,7 @@ class Transport extends EventEmitter {
   }
 
   notify(method: string, args: any[]) {
+    if (!this.attached) return
     this.encodeStream.write(
       msgpack.encode([2, method, args], {
         codec: this.codec,
@@ -134,7 +141,7 @@ class Transport extends EventEmitter {
         'request',
         msg[2].toString(),
         msg[3],
-        new Response(this.encodeStream, msg[1])
+        new Response(this.encodeStream, msg[1], () => this.attached)
       );
     } else if (msgType === 1) {
       // response to a previous request:
