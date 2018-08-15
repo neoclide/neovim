@@ -9,7 +9,7 @@ const debug = util.debuglog('nvim-api');
 export type BaseConstructorOptions = {
   transport?: Transport;
   logger?: ILogger;
-  data?: Buffer;
+  data?: number;
   metadata?: any;
   client?: any;
 };

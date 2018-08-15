@@ -27,6 +27,14 @@ export class NeovimClient extends Neovim {
     this.handleNotification = this.handleNotification.bind(this);
   }
 
+  createBuffer(id: number): Buffer {
+    return new Buffer({
+      transport: this.transport,
+      data: id,
+      client: this
+    })
+  }
+
   /** Attaches msgpack to read/write streams * */
   attach({
     reader,
