@@ -1,10 +1,10 @@
-import { BaseApi } from './Base';
-import { createChainableApi } from './helpers/createChainableApi';
-import { Buffer, AsyncBuffer } from './Buffer';
-import { Tabpage, AsyncTabpage } from './Tabpage';
-import { Window, AsyncWindow } from './Window';
-import { VimValue } from '../types/VimValue';
-import { ApiInfo } from '../types/ApiInfo'; // eslint-disable-line
+import { ApiInfo } from '../types/ApiInfo' // eslint-disable-line
+import { VimValue } from '../types/VimValue'
+import { BaseApi } from './Base'
+import { AsyncBuffer, Buffer } from './Buffer'
+import { createChainableApi } from './helpers/createChainableApi'
+import { AsyncTabpage, Tabpage } from './Tabpage'
+import { AsyncWindow, Window } from './Window'
 
 export type UiAttachOptions = {
   rgb?: boolean;
@@ -16,6 +16,8 @@ export type UiAttachOptions = {
   ext_wildmenu?: boolean;
   // eslint-disable-next-line camelcase
   ext_cmdline?: boolean;
+  // eslint-disable-next-line camelcase
+  ext_newgrid?: boolean;
 };
 
 export type Proc = {
@@ -235,7 +237,7 @@ export class Neovim extends BaseApi {
   /** Call a vim function */
   call(fname: string, args?: VimValue | Array<VimValue>): Promise<any>;
   call(fname: string, args: VimValue | Array<VimValue>, isNotify: true): null;
-  call(fname: string, args: VimValue | Array<VimValue> = [], isNotify?: boolean): Promise<any|null> {
+  call(fname: string, args: VimValue | Array<VimValue> = [], isNotify?: boolean): Promise<any | null> {
     const _args = Array.isArray(args) ? args : [args];
     if (isNotify) {
       this.notify(`${this.prefix}call_function`, [fname, _args]);
@@ -245,7 +247,7 @@ export class Neovim extends BaseApi {
   }
 
   /** Alias for `call` */
-  callFunction(fname: string, args: VimValue | Array<VimValue> = []): Promise<any>|null {
+  callFunction(fname: string, args: VimValue | Array<VimValue> = []): Promise<any> | null {
     return this.call(fname, args);
   }
 
@@ -257,7 +259,7 @@ export class Neovim extends BaseApi {
   /** Runs a vim command */
   command(arg: string): Promise<any>;
   command(arg: string, isNotify: true): null;
-  command(arg: string, isNotify?: boolean): Promise<any>|null {
+  command(arg: string, isNotify?: boolean): Promise<any> | null {
     if (isNotify) {
       this.notify(`${this.prefix}command`, [arg]);
       return null
