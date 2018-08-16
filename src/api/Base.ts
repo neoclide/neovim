@@ -114,8 +114,14 @@ export class BaseApi extends EventEmitter {
   }
 
   /** Set a scoped variable */
-  setVar(name: string, value: VimValue): Promise<void> {
+  setVar(name: string, value: VimValue, isNotify: true): void
+  setVar(name: string, value: VimValue, isNotify?: false): Promise<void>
+  setVar(name: string, value: VimValue, isNotify = false): Promise<void> | void {
     const args = this._getArgsByPrefix(name, value);
+    if (isNotify) {
+      this.notify(`${this.prefix}set_var`, args)
+      return
+    }
     return this.request(`${this.prefix}set_var`, args);
   }
 
