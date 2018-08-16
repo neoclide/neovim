@@ -30,13 +30,13 @@ export class Tabpage extends BaseApi {
   }
 
   /** Invalid */
-  getOption(): void {
-    this.logger.error('Tabpage does not have `getOption`');
+  getOption(): any {
+    throw new Error('Tabpage does not have `getOption`')
   }
 
   /** Invalid */
-  setOption(): void {
-    this.logger.error('Tabpage does not have `setOption`');
+  setOption(): any {
+    throw new Error('Tabpage does not have `setOption`')
   }
 }
 

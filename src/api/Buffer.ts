@@ -19,9 +19,6 @@ export interface BufferClearHighlight {
   lineEnd?: number;
 }
 
-export const DETACH = Symbol('detachBuffer');
-export const ATTACH = Symbol('attachBuffer');
-
 export class Buffer extends BaseApi {
   public prefix: string = Metadata[ExtType.Buffer].prefix;
   private isAttached: boolean = false;
@@ -33,13 +30,25 @@ export class Buffer extends BaseApi {
    *        `nvim_buf_lines_event`. Otherwise, the first notification will be
    *        a `nvim_buf_changedtick_event`
    */
-  [ATTACH] = (sendBuffer: boolean = false, options: {} = {}) =>
-    this.request(`${this.prefix}attach`, [this, sendBuffer, options]);
+  public async attach(sendBuffer: boolean = false, options: {} = {}): Promise<boolean> {
+    if (this.isAttached) return true
+    let res = this.request(`${this.prefix}attach`, [this, sendBuffer, options]);
+    if (res) this.isAttached = true
+    return res
+  }
 
   /**
    * Detach from buffer to stop listening to buffer events
    */
-  [DETACH] = () => this.request(`${this.prefix}detach`, [this]);
+  public async detach(): Promise<void> {
+    if (!this.isAttached) return
+    try {
+      this.request(`${this.prefix}detach`, [this]);
+    } catch (e) {
+      // ignore error
+    }
+    this.isAttached = false
+  }
 
   /**
    * Get the bufnr of Buffer
@@ -129,7 +138,7 @@ export class Buffer extends BaseApi {
   }
 
   /** Remove lines at index */
-  remove(start: number, end: number, strictIndexing: boolean) {
+  remove(start: number, end: number, strictIndexing = false) {
     return this.setLines([], { start, end, strictIndexing });
   }
 
@@ -143,13 +152,13 @@ export class Buffer extends BaseApi {
   }
 
   /** Get buffer name */
-  get name(): string | Promise<string> {
+  get name(): Promise<string> {
     return this.request(`${this.prefix}get_name`, [this]);
   }
 
   /** Set current buffer name */
-  set name(value: string | Promise<string>) {
-    this.request(`${this.prefix}set_name`, [this, value]);
+  setName(value: string): Promise<void> {
+    return this.request(`${this.prefix}set_name`, [this, value]);
   }
 
   /** Is current buffer valid */
@@ -245,10 +254,8 @@ export class Buffer extends BaseApi {
    */
   listen(eventName: string, cb: Function): Function {
     if (!this.isAttached) {
-      this[ATTACH]();
-      this.isAttached = true;
+      throw new Error('buffer not attached')
     }
-
     this.client.attachBuffer(this, eventName, cb);
     return () => {
       this.unlisten(eventName, cb);
@@ -256,10 +263,7 @@ export class Buffer extends BaseApi {
   }
 
   unlisten(eventName: string, cb: Function) {
-    const shouldDetach = this.client.detachBuffer(this, eventName, cb);
-    if (!shouldDetach) return;
-    this.isAttached = false;
-    this[DETACH]();
+    this.client.detachBuffer(this, eventName, cb);
   }
 }
 

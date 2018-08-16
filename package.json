@@ -41,6 +41,7 @@
   "main": "./lib/index",
   "typings": "./lib/index",
   "dependencies": {
+    "babel-eslint": "^8.2.6",
     "msgpack-lite": "^0.1.26",
     "traverse": "^0.6.6"
   },
