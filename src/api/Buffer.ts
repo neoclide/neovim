@@ -43,7 +43,7 @@ export class Buffer extends BaseApi {
   public async detach(): Promise<void> {
     if (!this.isAttached) return
     try {
-      this.request(`${this.prefix}detach`, [this]);
+      await this.request(`${this.prefix}detach`, [this]);
     } catch (e) {
       // ignore error
     }
