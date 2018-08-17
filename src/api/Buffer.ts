@@ -31,24 +31,25 @@ export class Buffer extends BaseApi {
    *        a `nvim_buf_changedtick_event`
    */
   public async attach(sendBuffer: boolean = false, options: {} = {}): Promise<boolean> {
-    let res = this.request(`${this.prefix}attach`, [this, sendBuffer, options]);
+    let res = false
+    try {
+      res = await this.request(`${this.prefix}attach`, [this, sendBuffer, options]);
+    } catch (e) {
+      // ignore error
+    }
     if (res) {
       this.isAttached = true
     } else {
       this.isAttached = false
     }
-    return res
+    return !!res
   }
 
   /**
    * Detach from buffer to stop listening to buffer events
    */
   public async detach(): Promise<void> {
-    try {
-      await this.request(`${this.prefix}detach`, [this]);
-    } catch (e) {
-      // ignore error
-    }
+    await this.notify(`${this.prefix}detach`, [this]);
     this.isAttached = false
   }
 
