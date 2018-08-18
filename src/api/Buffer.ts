@@ -1,5 +1,6 @@
 import { BaseApi } from './Base';
 import { ExtType, Metadata } from './types';
+import {ATTACH_BUFFER, DETACH_BUFFER} from './client'
 
 export interface BufferSetLines {
   start?: number;
@@ -21,7 +22,10 @@ export interface BufferClearHighlight {
 
 export class Buffer extends BaseApi {
   public prefix: string = Metadata[ExtType.Buffer].prefix;
-  private isAttached: boolean = false;
+
+  public get isAttached() {
+    return this.client.isAttached(this.id)
+  }
 
   /**
    * Attach to buffer to listen to buffer events
@@ -31,26 +35,25 @@ export class Buffer extends BaseApi {
    *        a `nvim_buf_changedtick_event`
    */
   public async attach(sendBuffer: boolean = false, options: {} = {}): Promise<boolean> {
+    if (this.isAttached) return true
     let res = false
     try {
       res = await this.request(`${this.prefix}attach`, [this, sendBuffer, options]);
     } catch (e) {
-      // ignore error
+      res = false
     }
     if (res) {
-      this.isAttached = true
-    } else {
-      this.isAttached = false
+      this.client[ATTACH_BUFFER](this)
     }
-    return !!res
+    return this.isAttached
   }
 
   /**
    * Detach from buffer to stop listening to buffer events
    */
   public async detach(): Promise<void> {
+    if (!this.isAttached) return
     await this.notify(`${this.prefix}detach`, [this]);
-    this.isAttached = false
   }
 
   /**
@@ -259,14 +262,14 @@ export class Buffer extends BaseApi {
     if (!this.isAttached) {
       throw new Error('buffer not attached')
     }
-    this.client.attachBuffer(this, eventName, cb);
+    this.client.attachBufferEvent(this, eventName, cb);
     return () => {
       this.unlisten(eventName, cb);
     };
   }
 
   unlisten(eventName: string, cb: Function) {
-    this.client.detachBuffer(this, eventName, cb);
+    this.client.detachBufferEvent(this, eventName, cb);
   }
 }
 

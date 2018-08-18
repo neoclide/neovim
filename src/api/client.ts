@@ -7,11 +7,14 @@ import { Neovim } from './Neovim';
 import { Buffer } from './Buffer';
 import { createLogger, ILogger } from '../utils/logger'
 
+export const DETACH_BUFFER = Symbol('detachBuffer');
+export const ATTACH_BUFFER = Symbol('attachBuffer');
+
 export class NeovimClient extends Neovim {
   protected requestQueue: Array<any>;
   private transportAttached: boolean;
   private _channelId: number;
-  private attachedBuffers: Map<string, Map<string, Function[]>> = new Map();
+  private attachedBuffers: Map<number, Map<string, Function[]>> = new Map();
 
   constructor(options: { transport?: Transport; logger?: ILogger } = {}) {
     // Neovim has no `data` or `metadata`
@@ -59,6 +62,10 @@ export class NeovimClient extends Neovim {
     });
   }
 
+  public isAttached(bufnr: number): boolean {
+    return this.attachedBuffers.has(bufnr)
+  }
+
   handleRequest(
     method: string,
     args: VimValue[],
@@ -87,22 +94,22 @@ export class NeovimClient extends Neovim {
         return;
       }
       const shortName = method.replace(/nvim_buf_(.*)_event/, '$1');
-      const [buffer] = args;
-      const bufferKey = `${buffer.data}`;
+      const buffer = args[0] as Buffer;
+      const {id} = buffer
 
-      if (!this.attachedBuffers.has(bufferKey)) {
+      if (!this.isAttached(id)) {
         // this is a problem
         return;
       }
 
-      const bufferMap = this.attachedBuffers.get(bufferKey);
+      const bufferMap = this.attachedBuffers.get(id);
       const cbs = bufferMap.get(shortName) || [];
       cbs.forEach(cb => cb(...args));
 
       // Handle `nvim_buf_detach_event`
       // clean `attachedBuffers` since it will no longer be attached
       if (shortName === 'detach') {
-        this.attachedBuffers.delete(bufferKey);
+        this.attachedBuffers.delete(id);
       }
     } else {
       this.emit('notification', method, args);
@@ -158,7 +165,6 @@ export class NeovimClient extends Neovim {
     });
   }
 
-  // Request API from neovim and augment this current class to add these APIs
   async generateApi(): Promise<null | boolean> {
     let results;
 
@@ -206,14 +212,22 @@ export class NeovimClient extends Neovim {
     return null;
   }
 
-  attachBuffer(buffer: Buffer, eventName: string, cb: Function) {
-    const bufferKey = `${buffer.data}`;
+  [ATTACH_BUFFER](buffer: Buffer): void {
+    this.attachedBuffers.set(buffer.id, new Map());
+  }
 
-    if (!this.attachedBuffers.has(bufferKey)) {
-      this.attachedBuffers.set(bufferKey, new Map());
+  [DETACH_BUFFER](buffer: Buffer): void {
+    this.attachedBuffers.delete(buffer.id);
+  }
+
+  attachBufferEvent(buffer: Buffer, eventName: string, cb: Function) {
+
+    if (!this.isAttached(buffer.id)) {
+      console.error(`${buffer.id} is detached`);
+      return null
     }
 
-    const bufferMap = this.attachedBuffers.get(bufferKey);
+    const bufferMap = this.attachedBuffers.get(buffer.id);
     if (!bufferMap.get(eventName)) {
       bufferMap.set(eventName, []);
     }
@@ -222,18 +236,16 @@ export class NeovimClient extends Neovim {
     if (cbs.indexOf(cb) !== -1) return cb;
     cbs.push(cb);
     bufferMap.set(eventName, cbs);
-    this.attachedBuffers.set(bufferKey, bufferMap);
-
+    this.attachedBuffers.set(buffer.id, bufferMap);
     return cb;
   }
 
   /**
    * Returns `true` if buffer should be detached
    */
-  detachBuffer(buffer: Buffer, eventName: string, cb: Function) {
-    const bufferKey = `${buffer.data}`;
-    const bufferMap = this.attachedBuffers.get(bufferKey);
-    if (!bufferMap) return false;
+  detachBufferEvent(buffer: Buffer, eventName: string, cb: Function) {
+    const bufferMap = this.attachedBuffers.get(buffer.id);
+    if (!bufferMap) return
 
     const handlers = (bufferMap.get(eventName) || []).filter(
       handler => handler !== cb
@@ -245,12 +257,5 @@ export class NeovimClient extends Neovim {
     } else {
       bufferMap.set(eventName, handlers);
     }
-
-    if (!bufferMap.size) {
-      this.attachedBuffers.delete(bufferKey);
-      return true;
-    }
-
-    return false;
   }
 }

@@ -4,6 +4,7 @@ import { Transport } from '../utils/transport';
 import { VimValue } from '../types/VimValue';
 import {createLogger, ILogger} from '../utils/logger'
 import * as util from 'util'
+import { NeovimClient } from './client'
 const debug = util.debuglog('nvim-api');
 
 export type BaseConstructorOptions = {
@@ -32,7 +33,7 @@ export class BaseApi extends EventEmitter {
   protected prefix: string;
   public logger: ILogger;
   public data: Buffer | Number; // Node Buffer
-  protected client: any;
+  protected client: NeovimClient;
 
   constructor({
     transport,
