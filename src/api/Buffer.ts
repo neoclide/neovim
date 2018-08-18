@@ -1,6 +1,6 @@
 import { BaseApi } from './Base';
 import { ExtType, Metadata } from './types';
-import {ATTACH_BUFFER} from './client'
+import {ATTACH_BUFFER, DETACH_BUFFER} from './client'
 
 export interface BufferSetLines {
   start?: number;
@@ -52,8 +52,8 @@ export class Buffer extends BaseApi {
    * Detach from buffer to stop listening to buffer events
    */
   public async detach(): Promise<void> {
-    if (!this.isAttached) return
-    await this.notify(`${this.prefix}detach`, [this]);
+    this.client[DETACH_BUFFER](this)
+    this.notify(`${this.prefix}detach`, [this]);
   }
 
   /**
