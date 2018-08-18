@@ -1,6 +1,6 @@
 import { BaseApi } from './Base';
 import { ExtType, Metadata } from './types';
-import {ATTACH_BUFFER, DETACH_BUFFER} from './client'
+import {ATTACH_BUFFER} from './client'
 
 export interface BufferSetLines {
   start?: number;
