@@ -53,7 +53,11 @@ export class Buffer extends BaseApi {
    */
   public async detach(): Promise<void> {
     this.client[DETACH_BUFFER](this)
-    this.notify(`${this.prefix}detach`, [this]);
+    try {
+      await this.request(`${this.prefix}detach`, [this]);
+    } catch (e) {
+      // noop
+    }
   }
 
   /**
