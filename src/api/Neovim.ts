@@ -35,6 +35,12 @@ export class Neovim extends BaseApi {
   public Window = Window;
   public Tabpage = Tabpage;
 
+  private getArgs(args?: VimValue | Array<VimValue>): VimValue[] {
+    if (!args) return []
+    if (Array.isArray(args)) return args
+    return [args]
+  }
+
   get apiInfo(): Promise<[number, ApiInfo]> {
     return this.request(`${this.prefix}get_api_info`);
   }
@@ -212,7 +218,7 @@ export class Neovim extends BaseApi {
    * Executes lua, it's possible neovim client does not support this
    */
   lua(code: string, args: Array<VimValue> = []): Promise<object> {
-    const _args = Array.isArray(args) ? args : [args];
+    const _args = this.getArgs(args)
     return this.request(`${this.prefix}execute_lua`, [code, _args]);
   }
 
@@ -226,7 +232,7 @@ export class Neovim extends BaseApi {
     fname: string,
     args: VimValue | Array<VimValue> = []
   ): object {
-    const _args = Array.isArray(args) ? args : [args];
+    const _args = this.getArgs(args)
     return this.request(`${this.prefix}call_dict_function`, [
       dict,
       fname,
@@ -238,12 +244,17 @@ export class Neovim extends BaseApi {
   call(fname: string, args?: VimValue | Array<VimValue>): Promise<any>;
   call(fname: string, args: VimValue | Array<VimValue>, isNotify: true): null;
   call(fname: string, args: VimValue | Array<VimValue> = [], isNotify?: boolean): Promise<any | null> {
-    const _args = Array.isArray(args) ? args : [args];
+    const _args = this.getArgs(args)
     if (isNotify) {
       this.notify(`${this.prefix}call_function`, [fname, _args]);
       return null
     }
     return this.request(`${this.prefix}call_function`, [fname, _args]);
+  }
+
+  callAsync(fname: string, args: VimValue | Array<VimValue> = []): Promise<any> {
+    const _args = this.getArgs(args)
+    return this.client.sendAsyncRequest(fname, _args)
   }
 
   /** Alias for `call` */

@@ -10,9 +10,26 @@ import { createLogger, ILogger } from '../utils/logger'
 export const DETACH_BUFFER = Symbol('detachBuffer');
 export const ATTACH_BUFFER = Symbol('attachBuffer');
 
+export type Callback = (err?: Error | null, res?: any) => void;
+
+export class AsyncResponse {
+  constructor(public readonly requestId: number, private cb: Callback) {
+  }
+
+  finish(err?: string | null, res?: any): void {
+    if (err) {
+      this.cb(new Error(err))
+      return
+    }
+    this.cb(null, res)
+  }
+}
+
 export class NeovimClient extends Neovim {
   protected requestQueue: Array<any>;
+  private requestId = 1
   private transportAttached: boolean;
+  private responses: Map<number, AsyncResponse> = new Map()
   private _channelId: number;
   private attachedBuffers: Map<number, Map<string, Function[]>> = new Map();
 
@@ -21,6 +38,7 @@ export class NeovimClient extends Neovim {
     super({
       logger: options.logger || createLogger('plugin'),
     });
+    (this as any).client = this
 
     const transport = options.transport || new Transport();
     this.setTransport(transport);
@@ -87,30 +105,55 @@ export class NeovimClient extends Neovim {
     }
   }
 
+  sendAsyncRequest(method: string, args: any[]): Promise<any> {
+    let id = this.requestId
+    this.requestId = id + 1
+    this.notify('nvim_call_function', ['coc#rpc#async_request', [id, method, args || []]])
+    return new Promise<any>((resolve, reject) => {
+      let response = new AsyncResponse(id, (err?: Error, res?: any): void => {
+        if (err) return reject(err)
+        resolve(res)
+      })
+      this.responses.set(id, response)
+    })
+  }
+
   emitNotification(method: string, args: any[]) {
     if (method.endsWith('_event')) {
-      if (!method.startsWith('nvim_buf_')) {
-        this.logger.error(`Unhandled event: ${method}`);
-        return;
-      }
-      const shortName = method.replace(/nvim_buf_(.*)_event/, '$1');
-      const buffer = args[0] as Buffer;
-      const {id} = buffer
+      if (method.startsWith('nvim_buf_')) {
+        const shortName = method.replace(/nvim_buf_(.*)_event/, '$1');
+        const buffer = args[0] as Buffer;
+        const { id } = buffer
 
-      if (!this.isAttached(id)) {
-        // this is a problem
-        return;
-      }
+        if (!this.isAttached(id)) {
+          // this is a problem
+          return;
+        }
 
-      const bufferMap = this.attachedBuffers.get(id);
-      const cbs = bufferMap.get(shortName) || [];
-      cbs.forEach(cb => cb(...args));
+        const bufferMap = this.attachedBuffers.get(id);
+        const cbs = bufferMap.get(shortName) || [];
+        cbs.forEach(cb => cb(...args));
 
-      // Handle `nvim_buf_detach_event`
-      // clean `attachedBuffers` since it will no longer be attached
-      if (shortName === 'detach') {
-        this.attachedBuffers.delete(id);
+        // Handle `nvim_buf_detach_event`
+        // clean `attachedBuffers` since it will no longer be attached
+        if (shortName === 'detach') {
+          this.attachedBuffers.delete(id);
+        }
+        return
       }
+      // nvim_async_response_event
+      if (method.startsWith('nvim_async_response')) {
+        const [id, err, res] = args
+        const response = this.responses.get(id)
+        if (!response) {
+          this.logger.error(`Response not found for request ${id}`);
+          return
+        }
+        this.responses.delete(id)
+        response.finish(err, res)
+        return
+      }
+      this.logger.error(`Unhandled event: ${method}`);
     } else {
       this.emit('notification', method, args);
     }
