@@ -141,6 +141,15 @@ export class NeovimClient extends Neovim {
         }
         return
       }
+      // nvim_async_request_event
+      if (method.startsWith('nvim_async_request')) {
+        const [id, method, arr] = args
+        this.handleRequest(method, arr, {
+          send: (resp: any, isError?: boolean): void => {
+            this.notify('nvim_call_function', ['coc#rpc#async_response', [id, resp, isError]])
+          }
+        })
+      }
       // nvim_async_response_event
       if (method.startsWith('nvim_async_response')) {
         const [id, err, res] = args
