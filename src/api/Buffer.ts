@@ -1,6 +1,6 @@
 import { BaseApi } from './Base';
 import { ExtType, Metadata } from './types';
-import {ATTACH_BUFFER, DETACH_BUFFER} from './client'
+import { ATTACH_BUFFER, DETACH_BUFFER } from './client'
 
 export interface BufferSetLines {
   start?: number;
@@ -142,7 +142,7 @@ export class Buffer extends BaseApi {
     const lines = typeof _lines === 'string' ? [_lines] : _lines;
     return this.setLines(lines, {
       start,
-      end: start + lines.length + 1,
+      end: start + lines.length,
       strictIndexing: false,
     });
   }
@@ -277,4 +277,4 @@ export class Buffer extends BaseApi {
   }
 }
 
-export interface AsyncBuffer extends Buffer, Promise<Buffer> {}
+export interface AsyncBuffer extends Buffer, Promise<Buffer> { }
