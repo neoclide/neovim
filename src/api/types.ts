@@ -1,6 +1,6 @@
-import { Buffer } from './Buffer';
-import { Window } from './Window';
-import { Tabpage } from './Tabpage';
+import { Buffer } from './Buffer'
+import { Window } from './Window'
+import { Tabpage } from './Tabpage'
 
 export enum ExtType {
   Buffer,
@@ -8,14 +8,14 @@ export enum ExtType {
   Tabpage,
 }
 export interface ExtTypeConstructor<T> {
-  new (...args: any[]): T;
+  new(...args: any[]): T
 }
 
 export type MetadataType = {
-  constructor: ExtTypeConstructor<Buffer | Tabpage | Window>;
-  name: string;
-  prefix: string;
-};
+  constructor: ExtTypeConstructor<Buffer | Tabpage | Window>
+  name: string
+  prefix: string
+}
 
 export const Metadata: MetadataType[] = [
   {
@@ -33,4 +33,4 @@ export const Metadata: MetadataType[] = [
     name: 'Tabpage',
     prefix: 'nvim_tabpage_',
   },
-];
+]

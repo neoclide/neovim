@@ -1,27 +1,27 @@
-import { BaseApi } from './Base';
-import { ExtType, Metadata } from './types';
+import { BaseApi } from './Base'
+import { ExtType, Metadata } from './types'
 import { ATTACH_BUFFER, DETACH_BUFFER } from './client'
 
 export interface BufferSetLines {
-  start?: number;
-  end?: number;
-  strictIndexing?: boolean;
+  start?: number
+  end?: number
+  strictIndexing?: boolean
 }
 export interface BufferHighlight {
-  hlGroup?: string;
-  line?: number;
-  colStart?: number;
-  colEnd?: number;
-  srcId?: number;
+  hlGroup?: string
+  line?: number
+  colStart?: number
+  colEnd?: number
+  srcId?: number
 }
 export interface BufferClearHighlight {
-  srcId?: number;
-  lineStart?: number;
-  lineEnd?: number;
+  srcId?: number
+  lineStart?: number
+  lineEnd?: number
 }
 
 export class Buffer extends BaseApi {
-  public prefix: string = Metadata[ExtType.Buffer].prefix;
+  public prefix: string = Metadata[ExtType.Buffer].prefix
 
   public get isAttached() {
     return this.client.isAttached(this.id)
@@ -38,7 +38,7 @@ export class Buffer extends BaseApi {
     if (this.isAttached) return true
     let res = false
     try {
-      res = await this.request(`${this.prefix}attach`, [this, sendBuffer, options]);
+      res = await this.request(`${this.prefix}attach`, [this, sendBuffer, options])
     } catch (e) {
       res = false
     }
@@ -54,7 +54,7 @@ export class Buffer extends BaseApi {
   public async detach(): Promise<void> {
     this.client[DETACH_BUFFER](this)
     try {
-      await this.request(`${this.prefix}detach`, [this]);
+      await this.request(`${this.prefix}detach`, [this])
     } catch (e) {
       // noop
     }
@@ -64,30 +64,30 @@ export class Buffer extends BaseApi {
    * Get the bufnr of Buffer
    */
   get id(): number {
-    return this.data as number;
+    return this.data as number
   }
 
   /** Total number of lines in buffer */
   get length(): Promise<number> {
-    return this.request(`${this.prefix}line_count`, [this]);
+    return this.request(`${this.prefix}line_count`, [this])
   }
 
   /** Get lines in buffer */
   get lines(): Promise<Array<string>> {
-    return this.getLines();
+    return this.getLines()
   }
 
   /** Gets a changed tick of a buffer */
   get changedtick(): Promise<number> {
-    return this.request(`${this.prefix}get_changedtick`, [this]);
+    return this.request(`${this.prefix}get_changedtick`, [this])
   }
 
   get commands(): Promise<Object> {
-    return this.getCommands();
+    return this.getCommands()
   }
 
   getCommands(options = {}): Promise<Object> {
-    return this.request(`${this.prefix}get_commands`, [this, options]);
+    return this.request(`${this.prefix}get_commands`, [this, options])
   }
 
   /** Get specific lines of buffer */
@@ -95,13 +95,13 @@ export class Buffer extends BaseApi {
     { start, end, strictIndexing } = { start: 0, end: -1, strictIndexing: true }
   ): Promise<Array<string>> {
     const indexing =
-      typeof strictIndexing === 'undefined' ? true : strictIndexing;
+      typeof strictIndexing === 'undefined' ? true : strictIndexing
     return this.request(`${this.prefix}get_lines`, [
       this,
       start,
       end,
       indexing,
-    ]);
+    ])
   }
 
   /** Set lines of buffer given indeces */
@@ -115,9 +115,9 @@ export class Buffer extends BaseApi {
     // if (typeof start === 'undefined' || typeof end === 'undefined') {
     // }
     const indexing =
-      typeof strictIndexing === 'undefined' ? true : strictIndexing;
-    const lines = typeof _lines === 'string' ? [_lines] : _lines;
-    const end = typeof _end !== 'undefined' ? _end : _start + 1;
+      typeof strictIndexing === 'undefined' ? true : strictIndexing
+    const lines = typeof _lines === 'string' ? [_lines] : _lines
+    const end = typeof _end !== 'undefined' ? _end : _start + 1
 
     return this.request(`${this.prefix}set_lines`, [
       this,
@@ -125,7 +125,7 @@ export class Buffer extends BaseApi {
       end,
       indexing,
       lines,
-    ]);
+    ])
   }
 
   /** Insert lines at `start` index */
@@ -134,22 +134,22 @@ export class Buffer extends BaseApi {
       start,
       end: start,
       strictIndexing: true,
-    });
+    })
   }
 
   /** Replace lines starting at `start` index */
   replace(_lines: Array<string> | string, start: number) {
-    const lines = typeof _lines === 'string' ? [_lines] : _lines;
+    const lines = typeof _lines === 'string' ? [_lines] : _lines
     return this.setLines(lines, {
       start,
       end: start + lines.length,
       strictIndexing: false,
-    });
+    })
   }
 
   /** Remove lines at index */
   remove(start: number, end: number, strictIndexing = false) {
-    return this.setLines([], { start, end, strictIndexing });
+    return this.setLines([], { start, end, strictIndexing })
   }
 
   /** Append a string or list of lines to end of buffer */
@@ -158,27 +158,27 @@ export class Buffer extends BaseApi {
       start: -1,
       end: -1,
       strictIndexing: false,
-    });
+    })
   }
 
   /** Get buffer name */
   get name(): Promise<string> {
-    return this.request(`${this.prefix}get_name`, [this]);
+    return this.request(`${this.prefix}get_name`, [this])
   }
 
   /** Set current buffer name */
   setName(value: string): Promise<void> {
-    return this.request(`${this.prefix}set_name`, [this, value]);
+    return this.request(`${this.prefix}set_name`, [this, value])
   }
 
   /** Is current buffer valid */
   get valid(): Promise<boolean> {
-    return this.request(`${this.prefix}is_valid`, [this]);
+    return this.request(`${this.prefix}is_valid`, [this])
   }
 
   /** Get mark position given mark name */
   mark(name: string): Promise<[number, number]> {
-    return this.request(`${this.prefix}get_mark`, [this, name]);
+    return this.request(`${this.prefix}get_mark`, [this, name])
   }
 
   // range(start, end) {
@@ -188,7 +188,7 @@ export class Buffer extends BaseApi {
 
   /** Gets keymap */
   getKeymap(mode: string): Promise<Array<object>> {
-    return this.request(`${this.prefix}get_keymap`, [this, mode]);
+    return this.request(`${this.prefix}get_keymap`, [this, mode])
   }
 
   /**
@@ -221,10 +221,10 @@ export class Buffer extends BaseApi {
     colEnd: _end,
     srcId: _srcId,
   }: BufferHighlight): Promise<number | null> {
-    const hlGroup = typeof _hlGroup !== 'undefined' ? _hlGroup : '';
-    const colEnd = typeof _end !== 'undefined' ? _end : -1;
-    const colStart = typeof _start !== 'undefined' ? _start : -0;
-    const srcId = typeof _srcId !== 'undefined' ? _srcId : -1;
+    const hlGroup = typeof _hlGroup !== 'undefined' ? _hlGroup : ''
+    const colEnd = typeof _end !== 'undefined' ? _end : -1
+    const colStart = typeof _start !== 'undefined' ? _start : -0
+    const srcId = typeof _srcId !== 'undefined' ? _srcId : -1
     const method = hlGroup === '' ? 'request' : 'notify'
     let res = this[method](`${this.prefix}add_highlight`, [
       this,
@@ -247,16 +247,16 @@ export class Buffer extends BaseApi {
       srcId: -1,
       lineStart: 0,
       lineEnd: -1,
-    };
+    }
 
-    const { srcId, lineStart, lineEnd } = Object.assign({}, defaults, args);
+    const { srcId, lineStart, lineEnd } = Object.assign({}, defaults, args)
 
     return this.notify(`${this.prefix}clear_highlight`, [
       this,
       srcId,
       lineStart,
       lineEnd,
-    ]);
+    ])
   }
 
   /**
@@ -266,14 +266,14 @@ export class Buffer extends BaseApi {
     if (!this.isAttached) {
       throw new Error('buffer not attached')
     }
-    this.client.attachBufferEvent(this, eventName, cb);
+    this.client.attachBufferEvent(this, eventName, cb)
     return () => {
-      this.unlisten(eventName, cb);
-    };
+      this.unlisten(eventName, cb)
+    }
   }
 
   unlisten(eventName: string, cb: Function) {
-    this.client.detachBufferEvent(this, eventName, cb);
+    this.client.detachBufferEvent(this, eventName, cb)
   }
 }
 

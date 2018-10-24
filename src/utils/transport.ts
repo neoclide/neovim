@@ -2,28 +2,28 @@
  * Some code borrowed from https://github.com/tarruda/node-msgpack5rpc
  */
 
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'events'
 
-import * as msgpack from 'msgpack-lite';
+import * as msgpack from 'msgpack-lite'
 
-import Buffered from './buffered';
-import { Metadata } from '../api/types';
+import Buffered from './buffered'
+import { Metadata } from '../api/types'
 
-export type Check = ()=>boolean
+export type Check = () => boolean
 
 class Response {
-  private requestId: number;
-  private sent: boolean;
-  private encoder: NodeJS.WritableStream;
+  private requestId: number
+  private sent: boolean
+  private encoder: NodeJS.WritableStream
 
-  constructor(encoder: NodeJS.WritableStream, requestId: number, private check:Check) {
-    this.encoder = encoder;
-    this.requestId = requestId;
+  constructor(encoder: NodeJS.WritableStream, requestId: number, private check: Check) {
+    this.encoder = encoder
+    this.requestId = requestId
   }
 
   send(resp: any, isError?: boolean): void {
     if (this.sent) {
-      throw new Error(`Response to id ${this.requestId} already sent`);
+      throw new Error(`Response to id ${this.requestId} already sent`)
     }
     if (!this.check()) return
     this.encoder.write(
@@ -33,47 +33,47 @@ class Response {
         isError ? resp : null,
         !isError ? resp : null,
       ])
-    );
-    this.sent = true;
+    )
+    this.sent = true
   }
 }
 
 class Transport extends EventEmitter {
-  private pending: Map<number, Function> = new Map();
-  private nextRequestId: number = 1;
-  private encodeStream: any;
-  private decodeStream: any;
-  private reader: NodeJS.ReadableStream;
-  private writer: NodeJS.WritableStream;
-  protected codec: msgpack.Codec;
+  private pending: Map<number, Function> = new Map()
+  private nextRequestId: number = 1
+  private encodeStream: any
+  private decodeStream: any
+  private reader: NodeJS.ReadableStream
+  private writer: NodeJS.WritableStream
+  protected codec: msgpack.Codec
   private attached = true
 
   // Neovim client that holds state
-  private client: any;
+  private client: any
 
   constructor() {
-    super();
+    super()
 
-    const codec = this.setupCodec();
-    this.encodeStream = msgpack.createEncodeStream({ codec });
-    this.decodeStream = msgpack.createDecodeStream({ codec });
+    const codec = this.setupCodec()
+    this.encodeStream = msgpack.createEncodeStream({ codec })
+    this.decodeStream = msgpack.createDecodeStream({ codec })
     this.decodeStream.on('data', (msg: any[]) => {
-      this.parseMessage(msg);
-    });
+      this.parseMessage(msg)
+    })
     this.decodeStream.on('end', () => {
-      this.detach();
-      this.emit('detach');
-    });
+      this.detach()
+      this.emit('detach')
+    })
   }
 
   setupCodec() {
-    const codec = msgpack.createCodec();
+    const codec = msgpack.createCodec()
 
     Metadata.forEach(
       ({ constructor }, id: number): void => {
         codec.addExtPacker(id, constructor, (obj: any) =>
           msgpack.encode(obj.data)
-        );
+        )
         codec.addExtUnpacker(
           id,
           data =>
@@ -82,12 +82,12 @@ class Transport extends EventEmitter {
               client: this.client,
               data: msgpack.decode(data),
             })
-        );
+        )
       }
-    );
+    )
 
-    this.codec = codec;
-    return this.codec;
+    this.codec = codec
+    return this.codec
   }
 
   attach(
@@ -95,29 +95,29 @@ class Transport extends EventEmitter {
     reader: NodeJS.ReadableStream,
     client: any
   ) {
-    this.encodeStream = this.encodeStream.pipe(writer);
-    const buffered = new Buffered();
-    reader.pipe(buffered).pipe(this.decodeStream);
-    this.writer = writer;
-    this.reader = reader;
-    this.client = client;
+    this.encodeStream = this.encodeStream.pipe(writer)
+    const buffered = new Buffered()
+    reader.pipe(buffered).pipe(this.decodeStream)
+    this.writer = writer
+    this.reader = reader
+    this.client = client
   }
 
   detach() {
     this.attached = false
-    this.encodeStream.unpipe(this.writer);
-    this.reader.unpipe(this.decodeStream);
+    this.encodeStream.unpipe(this.writer)
+    this.reader.unpipe(this.decodeStream)
   }
 
   request(method: string, args: any[], cb: Function) {
     if (!this.attached) return cb()
-    this.nextRequestId = this.nextRequestId + 1;
+    this.nextRequestId = this.nextRequestId + 1
     this.encodeStream.write(
       msgpack.encode([0, this.nextRequestId, method, args], {
         codec: this.codec,
       })
-    );
-    this.pending.set(this.nextRequestId, cb);
+    )
+    this.pending.set(this.nextRequestId, cb)
   }
 
   notify(method: string, args: any[]) {
@@ -126,11 +126,11 @@ class Transport extends EventEmitter {
       msgpack.encode([2, method, args], {
         codec: this.codec,
       })
-    );
+    )
   }
 
   parseMessage(msg: any[]) {
-    const msgType = msg[0];
+    const msgType = msg[0]
 
     if (msgType === 0) {
       // request
@@ -142,25 +142,25 @@ class Transport extends EventEmitter {
         msg[2].toString(),
         msg[3],
         new Response(this.encodeStream, msg[1], () => this.attached)
-      );
+      )
     } else if (msgType === 1) {
       // response to a previous request:
       //   - msg[1]: the id
       //   - msg[2]: error(if any)
       //   - msg[3]: result(if not errored)
-      const id = msg[1];
-      const handler = this.pending.get(id);
-      this.pending.delete(id);
-      handler(msg[2], msg[3]);
+      const id = msg[1]
+      const handler = this.pending.get(id)
+      this.pending.delete(id)
+      handler(msg[2], msg[3])
     } else if (msgType === 2) {
       // notification/event
       //   - msg[1]: event name
       //   - msg[2]: arguments
-      this.emit('notification', msg[1].toString(), msg[2]);
+      this.emit('notification', msg[1].toString(), msg[2])
     } else {
-      this.encodeStream.write([1, 0, 'Invalid message type', null]);
+      this.encodeStream.write([1, 0, 'Invalid message type', null])
     }
   }
 }
 
-export { Transport };
+export { Transport }

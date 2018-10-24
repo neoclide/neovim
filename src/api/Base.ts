@@ -71,7 +71,7 @@ export class BaseApi extends EventEmitter {
       this.transport.request(name, args, (err: any, res: any) => {
         debug(`response -> neovim.api.${name}: ${res}`)
         if (err) {
-          reject(new Error(`${name}: ${err}`))
+          reject(new Error(`request ${name} - ${err[1]}`))
         } else {
           resolve(res)
         }

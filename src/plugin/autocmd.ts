@@ -1,10 +1,10 @@
-import { NVIM_SYNC, NVIM_SPEC, NVIM_METHOD_NAME } from './properties';
+import { NVIM_SYNC, NVIM_SPEC, NVIM_METHOD_NAME } from './properties'
 
 export interface AutocmdOptions {
-  pattern: string;
+  pattern: string
   // eslint-disable-next-line no-eval
-  eval?: string;
-  sync?: boolean;
+  eval?: string
+  sync?: boolean
 }
 
 // Example
@@ -14,28 +14,28 @@ export function autocmd(name: string, options?: AutocmdOptions) {
     // const {
     // sync,
     // ...opts,
-    // } = options;
+    // } = options
 
-    const sync = options && !!options.sync;
-    const isMethod = typeof methodName === 'string';
-    const f = isMethod ? cls[methodName] : cls;
+    const sync = options && !!options.sync
+    const isMethod = typeof methodName === 'string'
+    const f = isMethod ? cls[methodName] : cls
     const opts: AutocmdOptions = {
       pattern: '',
     };
 
     ['pattern', 'eval'].forEach((option: keyof AutocmdOptions) => {
       if (options && typeof options[option] !== 'undefined') {
-        opts[option] = options[option];
+        opts[option] = options[option]
       }
-    });
+    })
 
     const nameWithPattern = `${name}${
       options.pattern ? `:${options.pattern}` : ''
-    }`;
+      }`
     Object.defineProperty(f, NVIM_METHOD_NAME, {
       value: `autocmd:${nameWithPattern}`,
-    });
-    Object.defineProperty(f, NVIM_SYNC, { value: !!sync });
+    })
+    Object.defineProperty(f, NVIM_SYNC, { value: !!sync })
     Object.defineProperty(f, NVIM_SPEC, {
       value: {
         type: 'autocmd',
@@ -43,13 +43,13 @@ export function autocmd(name: string, options?: AutocmdOptions) {
         sync: !!sync,
         opts,
       },
-    });
+    })
 
     if (isMethod) {
       // eslint-disable-next-line no-param-reassign
-      cls[methodName] = f;
+      cls[methodName] = f
     }
 
-    return cls;
-  };
+    return cls
+  }
 }

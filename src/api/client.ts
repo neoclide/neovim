@@ -1,16 +1,16 @@
 /**
  * Handles attaching transport
  */
-import { Transport } from '../utils/transport';
-import { VimValue } from '../types/VimValue';
-import { Neovim } from './Neovim';
-import { Buffer } from './Buffer';
+import { Transport } from '../utils/transport'
+import { VimValue } from '../types/VimValue'
+import { Neovim } from './Neovim'
+import { Buffer } from './Buffer'
 import { createLogger, ILogger } from '../utils/logger'
 
-export const DETACH_BUFFER = Symbol('detachBuffer');
-export const ATTACH_BUFFER = Symbol('attachBuffer');
+export const DETACH_BUFFER = Symbol('detachBuffer')
+export const ATTACH_BUFFER = Symbol('attachBuffer')
 
-export type Callback = (err?: Error | null, res?: any) => void;
+export type Callback = (err?: Error | null, res?: any) => void
 
 export class AsyncResponse {
   constructor(public readonly requestId: number, private cb: Callback) {
@@ -26,26 +26,26 @@ export class AsyncResponse {
 }
 
 export class NeovimClient extends Neovim {
-  protected requestQueue: Array<any>;
+  protected requestQueue: Array<any>
   private requestId = 1
-  private transportAttached: boolean;
+  private transportAttached: boolean
   private responses: Map<number, AsyncResponse> = new Map()
-  private _channelId: number;
-  private attachedBuffers: Map<number, Map<string, Function[]>> = new Map();
+  private _channelId: number
+  private attachedBuffers: Map<number, Map<string, Function[]>> = new Map()
 
   constructor(options: { transport?: Transport; logger?: ILogger } = {}) {
     // Neovim has no `data` or `metadata`
     super({
       logger: options.logger || createLogger('plugin'),
-    });
-    (this as any).client = this
+    })
+      ; (this as any).client = this
 
-    const transport = options.transport || new Transport();
-    this.setTransport(transport);
-    this.requestQueue = [];
-    this.transportAttached = false;
-    this.handleRequest = this.handleRequest.bind(this);
-    this.handleNotification = this.handleNotification.bind(this);
+    const transport = options.transport || new Transport()
+    this.setTransport(transport)
+    this.requestQueue = []
+    this.transportAttached = false
+    this.handleRequest = this.handleRequest.bind(this)
+    this.handleNotification = this.handleNotification.bind(this)
   }
 
   createBuffer(id: number): Buffer {
@@ -61,23 +61,23 @@ export class NeovimClient extends Neovim {
     reader,
     writer,
   }: {
-      reader: NodeJS.ReadableStream;
-      writer: NodeJS.WritableStream;
+      reader: NodeJS.ReadableStream
+      writer: NodeJS.WritableStream
     }) {
-    this.transport.attach(writer, reader, this);
-    this.transportAttached = true;
-    this.setupTransport();
+    this.transport.attach(writer, reader, this)
+    this.transportAttached = true
+    this.setupTransport()
   }
 
   get isApiReady(): boolean {
-    return this.transportAttached && typeof this._channelId !== 'undefined';
+    return this.transportAttached && typeof this._channelId !== 'undefined'
   }
 
   get channelId(): Promise<number> {
     return new Promise(async resolve => {
-      await this._isReady;
-      resolve(this._channelId);
-    });
+      await this._isReady
+      resolve(this._channelId)
+    })
   }
 
   public isAttached(bufnr: number): boolean {
@@ -90,7 +90,7 @@ export class NeovimClient extends Neovim {
     resp: any,
     ...restArgs: any[]
   ) {
-    this.logger.debug(`handleRequest: ${method}`);
+    this.logger.debug(`handleRequest: ${method}`)
     // If neovim API is not generated yet and we are not handle a 'specs' request
     // then queue up requests
     //
@@ -99,9 +99,9 @@ export class NeovimClient extends Neovim {
       this.requestQueue.push({
         type: 'request',
         args: [method, args, resp, ...restArgs],
-      });
+      })
     } else {
-      this.emit('request', method, args, resp);
+      this.emit('request', method, args, resp)
     }
   }
 
@@ -121,23 +121,23 @@ export class NeovimClient extends Neovim {
   emitNotification(method: string, args: any[]) {
     if (method.endsWith('_event')) {
       if (method.startsWith('nvim_buf_')) {
-        const shortName = method.replace(/nvim_buf_(.*)_event/, '$1');
-        const buffer = args[0] as Buffer;
+        const shortName = method.replace(/nvim_buf_(.*)_event/, '$1')
+        const buffer = args[0] as Buffer
         const { id } = buffer
 
         if (!this.isAttached(id)) {
           // this is a problem
-          return;
+          return
         }
 
-        const bufferMap = this.attachedBuffers.get(id);
-        const cbs = bufferMap.get(shortName) || [];
-        cbs.forEach(cb => cb(...args));
+        const bufferMap = this.attachedBuffers.get(id)
+        const cbs = bufferMap.get(shortName) || []
+        cbs.forEach(cb => cb(...args))
 
         // Handle `nvim_buf_detach_event`
         // clean `attachedBuffers` since it will no longer be attached
         if (shortName === 'detach') {
-          this.attachedBuffers.delete(id);
+          this.attachedBuffers.delete(id)
         }
         return
       }
@@ -155,21 +155,21 @@ export class NeovimClient extends Neovim {
         const [id, err, res] = args
         const response = this.responses.get(id)
         if (!response) {
-          this.logger.error(`Response not found for request ${id}`);
+          this.logger.error(`Response not found for request ${id}`)
           return
         }
         this.responses.delete(id)
         response.finish(err, res)
         return
       }
-      this.logger.error(`Unhandled event: ${method}`);
+      this.logger.error(`Unhandled event: ${method}`)
     } else {
-      this.emit('notification', method, args);
+      this.emit('notification', method, args)
     }
   }
 
   handleNotification(method: string, args: VimValue[], ...restArgs: any[]) {
-    this.logger.info(`handleNotification: ${method}`);
+    this.logger.info(`handleNotification: ${method}`)
     // If neovim API is not generated yet then queue up requests
     //
     // Otherwise emit as normal
@@ -177,28 +177,28 @@ export class NeovimClient extends Neovim {
       this.requestQueue.push({
         type: 'notification',
         args: [method, args, ...restArgs],
-      });
+      })
     } else {
-      this.emitNotification(method, args);
+      this.emitNotification(method, args)
     }
   }
 
   // Listen and setup handlers for transport
   setupTransport() {
     if (!this.transportAttached) {
-      throw new Error('Not attached to input/output');
+      throw new Error('Not attached to input/output')
     }
 
-    this.transport.on('request', this.handleRequest);
-    this.transport.on('notification', this.handleNotification);
+    this.transport.on('request', this.handleRequest)
+    this.transport.on('notification', this.handleNotification)
     this.transport.on('detach', () => {
-      this.emit('disconnect');
-      this.transport.removeAllListeners('request');
-      this.transport.removeAllListeners('notification');
-      this.transport.removeAllListeners('detach');
-    });
+      this.emit('disconnect')
+      this.transport.removeAllListeners('request')
+      this.transport.removeAllListeners('notification')
+      this.transport.removeAllListeners('detach')
+    })
 
-    this._isReady = this.generateApi();
+    this._isReady = this.generateApi()
   }
 
   requestApi(): Promise<any[]> {
@@ -208,106 +208,106 @@ export class NeovimClient extends Neovim {
         [],
         (err: Error, res: any[]) => {
           if (err) {
-            reject(err);
+            reject(err)
           } else {
-            resolve(res);
+            resolve(res)
           }
         }
-      );
-    });
+      )
+    })
   }
 
   async generateApi(): Promise<null | boolean> {
-    let results;
+    let results
 
     try {
-      results = await this.requestApi();
+      results = await this.requestApi()
     } catch (err) {
-      this.logger.error('Could not get vim api results');
-      this.logger.error(err);
+      this.logger.error('Could not get vim api results')
+      this.logger.error(err)
     }
 
     if (results) {
       try {
-        const [channelId, encodedMetadata] = results;
-        const metadata = encodedMetadata;
-        // this.logger.debug(`$$$: ${metadata}`);
+        const [channelId, encodedMetadata] = results
+        const metadata = encodedMetadata
+        // this.logger.debug(`$$$: ${metadata}`)
 
         // Perform sanity check for metadata types
         Object.keys(metadata.types).forEach((name: string) => {
           // @ts-ignore: Declared but its value is never read
           const metaDataForType = metadata.types[name]; // eslint-disable-line no-unused-vars
           // TODO: check `prefix` and `id`
-        });
+        })
 
-        this._channelId = channelId;
+        this._channelId = channelId
 
         // register the non-queueing handlers
         // dequeue any pending RPCs
         this.requestQueue.forEach(pending => {
           if (pending.type === 'notification') {
-            this.emitNotification(pending.args[0], pending.args[1]);
+            this.emitNotification(pending.args[0], pending.args[1])
           } else {
-            this.emit(pending.type, ...pending.args);
+            this.emit(pending.type, ...pending.args)
           }
-        });
-        this.requestQueue = [];
+        })
+        this.requestQueue = []
 
-        return true;
+        return true
       } catch (err) {
-        this.logger.error(`Could not dynamically generate neovim API: ${err.message}`);
-        this.logger.error(err.stack);
-        return null;
+        this.logger.error(`Could not dynamically generate neovim API: ${err.message}`)
+        this.logger.error(err.stack)
+        return null
       }
     }
 
-    return null;
+    return null
   }
 
   [ATTACH_BUFFER](buffer: Buffer): void {
-    this.attachedBuffers.set(buffer.id, new Map());
+    this.attachedBuffers.set(buffer.id, new Map())
   }
 
   [DETACH_BUFFER](buffer: Buffer): void {
-    this.attachedBuffers.delete(buffer.id);
+    this.attachedBuffers.delete(buffer.id)
   }
 
   attachBufferEvent(buffer: Buffer, eventName: string, cb: Function) {
 
     if (!this.isAttached(buffer.id)) {
-      console.error(`${buffer.id} is detached`);
+      console.error(`${buffer.id} is detached`)
       return null
     }
 
-    const bufferMap = this.attachedBuffers.get(buffer.id);
+    const bufferMap = this.attachedBuffers.get(buffer.id)
     if (!bufferMap.get(eventName)) {
-      bufferMap.set(eventName, []);
+      bufferMap.set(eventName, [])
     }
 
-    const cbs = bufferMap.get(eventName);
-    if (cbs.indexOf(cb) !== -1) return cb;
-    cbs.push(cb);
-    bufferMap.set(eventName, cbs);
-    this.attachedBuffers.set(buffer.id, bufferMap);
-    return cb;
+    const cbs = bufferMap.get(eventName)
+    if (cbs.indexOf(cb) !== -1) return cb
+    cbs.push(cb)
+    bufferMap.set(eventName, cbs)
+    this.attachedBuffers.set(buffer.id, bufferMap)
+    return cb
   }
 
   /**
    * Returns `true` if buffer should be detached
    */
   detachBufferEvent(buffer: Buffer, eventName: string, cb: Function) {
-    const bufferMap = this.attachedBuffers.get(buffer.id);
+    const bufferMap = this.attachedBuffers.get(buffer.id)
     if (!bufferMap) return
 
     const handlers = (bufferMap.get(eventName) || []).filter(
       handler => handler !== cb
-    );
+    )
 
     // Remove eventName listener from bufferMap if no more handlers
     if (!handlers.length) {
-      bufferMap.delete(eventName);
+      bufferMap.delete(eventName)
     } else {
-      bufferMap.set(eventName, handlers);
+      bufferMap.set(eventName, handlers)
     }
   }
 }

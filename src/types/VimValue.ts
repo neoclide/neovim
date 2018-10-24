@@ -3,4 +3,4 @@ export type VimValue =
   | boolean
   | string
   | number[]
-  | { [key: string]: any };
+  | { [key: string]: any }

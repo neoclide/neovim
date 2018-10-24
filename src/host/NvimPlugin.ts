@@ -1,108 +1,108 @@
 /* eslint import/export:0 */
-import { Neovim } from '../api/Neovim';
-import { Spec } from '../types/Spec';
-const util = require('util');
-const debug = util.debuglog('nvim-plugin-regist');
+import { Neovim } from '../api/Neovim'
+import { Spec } from '../types/Spec'
+const util = require('util')
+const debug = util.debuglog('nvim-plugin-regist')
 
 export interface NvimPluginOptions {
-  dev?: boolean;
-  alwaysInit?: boolean;
+  dev?: boolean
+  alwaysInit?: boolean
 }
 
 export interface AutocmdOptions {
-  pattern: string;
+  pattern: string
   // eslint-disable-next-line no-eval
-  eval?: string;
-  sync?: boolean;
+  eval?: string
+  sync?: boolean
 }
 
 export interface CommandOptions {
-  sync?: boolean;
-  range?: string;
-  nargs?: string;
-  complete?: string;
+  sync?: boolean
+  range?: string
+  nargs?: string
+  complete?: string
 }
 
 export interface NvimFunctionOptions {
-  sync?: boolean;
-  range?: string;
+  sync?: boolean
+  range?: string
   // eslint-disable-next-line no-eval
-  eval?: string;
+  eval?: string
 }
 
 export interface Handler {
-  fn: Function;
-  spec: Spec;
+  fn: Function
+  spec: Spec
 }
 
-export function callable(fn: Function): Function;
-export function callable(fn: [any, Function]): Function;
+export function callable(fn: Function): Function
+export function callable(fn: [any, Function]): Function
 export function callable(fn: any): Function {
   if (typeof fn === 'function') {
-    return fn;
+    return fn
   } else if (Array.isArray(fn) && fn.length === 2) {
     return function(...args: any[]) {
-      return fn[1].apply(fn[0], args);
-    };
+      return fn[1].apply(fn[0], args)
+    }
   }
 
-  throw new Error();
+  throw new Error()
 }
 
 export class NvimPlugin {
-  public filename: string;
-  public nvim: Neovim;
-  public instance: any;
+  public filename: string
+  public nvim: Neovim
+  public instance: any
 
-  public dev: boolean;
-  public alwaysInit: boolean;
+  public dev: boolean
+  public alwaysInit: boolean
 
-  public autocmds: { [index: string]: Handler };
-  public commands: { [index: string]: Handler };
-  public functions: { [index: string]: Handler };
+  public autocmds: { [index: string]: Handler }
+  public commands: { [index: string]: Handler }
+  public functions: { [index: string]: Handler }
 
   constructor(filename: string, plugin: any, nvim: Neovim) {
-    this.filename = filename;
-    this.nvim = nvim;
-    this.dev = false;
-    this.alwaysInit = false;
-    this.autocmds = {};
-    this.commands = {};
-    this.functions = {};
+    this.filename = filename
+    this.nvim = nvim
+    this.dev = false
+    this.alwaysInit = false
+    this.autocmds = {}
+    this.commands = {}
+    this.functions = {}
 
     // Simplifies class and decorator style plugins
     try {
       // eslint-disable-next-line new-cap
-      this.instance = new plugin(this);
+      this.instance = new plugin(this)
     } catch (err) {
       if (err instanceof TypeError) {
-        this.instance = plugin(this);
+        this.instance = plugin(this)
       } else {
-        throw err;
+        throw err
       }
     }
   }
 
   setOptions(options: NvimPluginOptions) {
-    this.dev = options.dev === undefined ? this.dev : options.dev;
-    this.alwaysInit = options.alwaysInit;
+    this.dev = options.dev === undefined ? this.dev : options.dev
+    this.alwaysInit = options.alwaysInit
   }
 
   // Cache module (in dev mode will clear the require module cache)
   get shouldCacheModule() {
-    return !this.dev;
+    return !this.dev
   }
 
-  registerAutocmd(name: string, fn: Function, options: AutocmdOptions): void;
+  registerAutocmd(name: string, fn: Function, options: AutocmdOptions): void
   registerAutocmd(
     name: string,
     fn: [any, Function],
     options: AutocmdOptions
-  ): void;
+  ): void
   registerAutocmd(name: string, fn: any, options?: AutocmdOptions): void {
     if (!options.pattern) {
-      debug(`registerAutocmd expected pattern option for ${name}`);
-      return;
+      debug(`registerAutocmd expected pattern option for ${name}`)
+      return
     }
 
     const spec: Spec = {
@@ -111,29 +111,29 @@ export class NvimPlugin {
       sync: options && !!options.sync,
       opts: {},
     };
-
+    
     ['pattern', 'eval'].forEach((option: keyof AutocmdOptions) => {
       if (options && typeof options[option] !== 'undefined') {
-        spec.opts[option] = options[option];
+        spec.opts[option] = options[option]
       }
-    });
+    })
 
     try {
       this.autocmds[`${name} ${options.pattern}`] = {
         fn: callable(fn),
         spec,
-      };
+      }
     } catch (err) {
-      debug(`registerAutocmd expected callable argument for ${name}`);
+      debug(`registerAutocmd expected callable argument for ${name}`)
     }
   }
 
-  registerCommand(name: string, fn: Function, options?: CommandOptions): void;
+  registerCommand(name: string, fn: Function, options?: CommandOptions): void
   registerCommand(
     name: string,
     fn: [any, Function],
     options?: CommandOptions
-  ): void;
+  ): void
   registerCommand(name: string, fn: any, options?: CommandOptions): void {
     const spec: Spec = {
       type: 'command',
@@ -141,20 +141,20 @@ export class NvimPlugin {
       sync: options && !!options.sync,
       opts: {},
     };
-
+    
     ['range', 'nargs', 'complete'].forEach((option: keyof CommandOptions) => {
       if (options && typeof options[option] !== 'undefined') {
-        spec.opts[option] = options[option];
+        spec.opts[option] = options[option]
       }
-    });
+    })
 
     try {
       this.commands[name] = {
         fn: callable(fn),
         spec,
-      };
+      }
     } catch (err) {
-      debug(`registerCommand expected callable argument for ${name}`);
+      debug(`registerCommand expected callable argument for ${name}`)
     }
   }
 
@@ -162,12 +162,12 @@ export class NvimPlugin {
     name: string,
     fn: Function,
     options?: NvimFunctionOptions
-  ): void;
+  ): void
   registerFunction(
     name: string,
     fn: [any, Function],
     options?: NvimFunctionOptions
-  ): void;
+  ): void
   registerFunction(name: string, fn: any, options?: NvimFunctionOptions): void {
     const spec: Spec = {
       type: 'function',
@@ -178,71 +178,71 @@ export class NvimPlugin {
 
     ['range', 'eval'].forEach((option: keyof NvimFunctionOptions) => {
       if (options && typeof options[option] !== 'undefined') {
-        spec.opts[option] = options[option];
+        spec.opts[option] = options[option]
       }
-    });
+    })
 
     try {
       this.functions[name] = {
         fn: callable(fn),
         spec,
-      };
+      }
     } catch (err) {
-      debug(`registerFunction expected callable argument for ${name}`);
+      debug(`registerFunction expected callable argument for ${name}`)
     }
   }
 
   get specs(): Spec[] {
     const autocmds = Object.keys(this.autocmds).map(
       key => this.autocmds[key].spec
-    );
+    )
     const commands = Object.keys(this.commands).map(
       key => this.commands[key].spec
-    );
+    )
     const functions = Object.keys(this.functions).map(
       key => this.functions[key].spec
-    );
-    return autocmds.concat(commands).concat(functions);
+    )
+    return autocmds.concat(commands).concat(functions)
   }
 
   async handleRequest(name: string, type: string, args: any[]) {
-    let handlers;
+    let handlers
 
     switch (type) {
       case 'autocmd':
-        handlers = this.autocmds;
-        break;
+        handlers = this.autocmds
+        break
       case 'command':
-        handlers = this.commands;
-        break;
+        handlers = this.commands
+        break
       case 'function':
-        handlers = this.functions;
-        break;
+        handlers = this.functions
+        break
       default:
         const errMsg = `No handler for unknown type ${type}: "${name}" in ${
           this.filename
-        }`;
-        debug(errMsg);
-        throw new Error(errMsg);
+          }`
+        debug(errMsg)
+        throw new Error(errMsg)
     }
 
     if (handlers.hasOwnProperty(name)) {
-      const handler = handlers[name];
+      const handler = handlers[name]
       try {
         return handler.spec.sync
           ? handler.fn(...args)
-          : await handler.fn(...args);
+          : await handler.fn(...args)
       } catch (err) {
-        const msg = `Error in plugin for ${type}:${name}: ${err.message}`;
-        debug(`${msg} (file: ${this.filename}, stack: ${err.stack})`);
-        throw new Error(err);
+        const msg = `Error in plugin for ${type}:${name}: ${err.message}`
+        debug(`${msg} (file: ${this.filename}, stack: ${err.stack})`)
+        throw new Error(err)
       }
     } else {
       const errMsg = `Missing handler for ${type}: "${name}" in ${
         this.filename
-      }`;
-      debug(errMsg);
-      throw new Error(errMsg);
+        }`
+      debug(errMsg)
+      throw new Error(errMsg)
     }
   }
 }

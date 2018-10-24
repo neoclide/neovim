@@ -1,31 +1,31 @@
-// import * as Module from 'module';
-import * as path from 'path';
-import * as util from 'util';
-import * as vm from 'vm';
-import { omit, defaults } from '../utils/lodash';
-import { Neovim } from '../api/Neovim';
-import { DevNull } from '../utils/devnull';
+// import * as Module from 'module'
+import * as path from 'path'
+import * as util from 'util'
+import * as vm from 'vm'
+import { omit, defaults } from '../utils/lodash'
+import { Neovim } from '../api/Neovim'
+import { DevNull } from '../utils/devnull'
 import { createLogger, ILogger } from '../utils/logger'
 
-import { NvimPlugin } from './NvimPlugin';
-const debug = util.debuglog('nvim-factory');
+import { NvimPlugin } from './NvimPlugin'
+const debug = util.debuglog('nvim-factory')
 
 export interface IModule {
-  new (name: string): any;
-  _resolveFilename: (file: string, context: any) => string;
-  _extensions: {};
-  _cache: { [file: string]: any };
-  _compile: () => void;
-  wrap: (content: string) => string;
-  require: (file: string) => NodeModule;
-  _nodeModulePaths: (filename: string) => string[];
+  new(name: string): any
+  _resolveFilename: (file: string, context: any) => string
+  _extensions: {}
+  _cache: { [file: string]: any }
+  _compile: () => void
+  wrap: (content: string) => string
+  require: (file: string) => NodeModule
+  _nodeModulePaths: (filename: string) => string[]
 }
 
 export type LoadPluginOptions = {
-  cache?: boolean;
-};
+  cache?: boolean
+}
 
-const Module: IModule = require('module');
+const Module: IModule = require('module')
 
 const REMOVED_GLOBALS = [
   'reallyExit',
@@ -41,110 +41,110 @@ const REMOVED_GLOBALS = [
   '_fatalException',
   'exit',
   'kill',
-];
+]
 
 function removedGlobalStub(name: string) {
   return () => {
-    throw new Error(`process.${name}() is not allowed in Plugin sandbox`);
-  };
+    throw new Error(`process.${name}() is not allowed in Plugin sandbox`)
+  }
 }
 
 // @see node/lib/internal/module.js
 function makeRequireFunction() {
-  const require: any = (p: string) => this.require(p);
-  require.resolve = (request: string) => Module._resolveFilename(request, this);
-  require.main = process.mainModule;
+  const require: any = (p: string) => this.require(p)
+  require.resolve = (request: string) => Module._resolveFilename(request, this)
+  require.main = process.mainModule
   // Enable support to add extra extension types
-  require.extensions = Module._extensions;
-  require.cache = Module._cache;
-  return require;
+  require.extensions = Module._extensions
+  require.cache = Module._cache
+  return require
 }
 
 // @see node/lib/module.js
 function compileInSandbox(sandbox: ISandbox) {
   // eslint-disable-next-line
   return function(content: string, filename: string) {
-    const require = makeRequireFunction.call(this);
-    const dirname = path.dirname(filename);
+    const require = makeRequireFunction.call(this)
+    const dirname = path.dirname(filename)
     // remove shebang
     // eslint-disable-next-line
-    const newContent = content.replace(/^\#\!.*/, '');
-    const wrapper = Module.wrap(newContent);
-    const compiledWrapper = vm.runInContext(wrapper, sandbox, { filename });
-    const args = [this.exports, require, this, filename, dirname];
-    return compiledWrapper.apply(this.exports, args);
-  };
+    const newContent = content.replace(/^\#\!.*/, '')
+    const wrapper = Module.wrap(newContent)
+    const compiledWrapper = vm.runInContext(wrapper, sandbox, { filename })
+    const args = [this.exports, require, this, filename, dirname]
+    return compiledWrapper.apply(this.exports, args)
+  }
 }
 
 function createDebugFunction(logger: ILogger, filename: string) {
   return (...args: any[]) => {
-    const debugId = path.basename(filename);
-    const sout = util.format.apply(null, [`[${debugId}]`].concat(args));
-    logger.debug(sout);
-  };
+    const debugId = path.basename(filename)
+    const sout = util.format.apply(null, [`[${debugId}]`].concat(args))
+    logger.debug(sout)
+  }
 }
 
 export interface ISandbox {
-  process: NodeJS.Process;
-  module: NodeModule;
-  require: (p: string) => any;
-  console: { [key in keyof Console]?: Function };
+  process: NodeJS.Process
+  module: NodeModule
+  require: (p: string) => any
+  console: { [key in keyof Console]?: Function }
 }
 
 function createSandbox(filename: string): ISandbox {
   const logger = createLogger(path.basename(filename, '.js'))
-  const module = new Module(filename);
-  module.paths = Module._nodeModulePaths(filename);
+  const module = new Module(filename)
+  module.paths = Module._nodeModulePaths(filename)
 
   const sandbox = <ISandbox>vm.createContext({
     module,
     console: {},
-  });
+  })
 
-  defaults(sandbox, global);
+  defaults(sandbox, global)
 
   // Redirect console calls into logger
   Object.keys(console).forEach((k: keyof Console) => {
     if (k === 'log') {
-      sandbox.console.log = createDebugFunction(logger, filename);
+      sandbox.console.log = createDebugFunction(logger, filename)
     } else if (k in logger) {
       if (logger.hasOwnProperty(k)) {
-        sandbox.console[k] = logger[k];
+        sandbox.console[k] = logger[k]
       }
     }
-  });
+  })
 
   sandbox.require = function sandboxRequire(p) {
-    const oldCompile = Module.prototype._compile;
-    Module.prototype._compile = compileInSandbox(sandbox);
-    const moduleExports = sandbox.module.require(p);
-    Module.prototype._compile = oldCompile;
-    return moduleExports;
-  };
+    const oldCompile = Module.prototype._compile
+    Module.prototype._compile = compileInSandbox(sandbox)
+    const moduleExports = sandbox.module.require(p)
+    Module.prototype._compile = oldCompile
+    return moduleExports
+  }
 
   // patch `require` in sandbox to run loaded module in sandbox context
   // if you need any of these, it might be worth discussing spawning separate processes
-  sandbox.process = <NodeJS.Process>omit(process, REMOVED_GLOBALS);
+  sandbox.process = <NodeJS.Process>omit(process, REMOVED_GLOBALS)
 
   REMOVED_GLOBALS.forEach(name => {
-    sandbox.process[name] = removedGlobalStub(name);
-  });
+    sandbox.process[name] = removedGlobalStub(name)
+  })
 
-  const devNull = new DevNull();
+  const devNull = new DevNull()
 
   // read-only umask
   sandbox.process.umask = (mask: number) => {
     if (typeof mask !== 'undefined') {
-      throw new Error('Cannot use process.umask() to change mask (read-only)');
+      throw new Error('Cannot use process.umask() to change mask (read-only)')
     }
-    return process.umask();
-  };
+    return process.umask()
+  }
 
-  sandbox.process.stdin = devNull;
-  sandbox.process.stdout = devNull;
-  sandbox.process.stderr = devNull;
+  sandbox.process.stdin = devNull
+  sandbox.process.stdout = devNull
+  sandbox.process.stderr = devNull
 
-  return sandbox;
+  return sandbox
 }
 
 // inspiration drawn from Module
@@ -154,31 +154,31 @@ function createPlugin(
   options: LoadPluginOptions = {}
 ): NvimPlugin | null {
   try {
-    const sandbox = createSandbox(filename);
+    const sandbox = createSandbox(filename)
 
-    debug(`createPlugin.${filename}.clearCache: ${options && !options.cache}`);
+    debug(`createPlugin.${filename}.clearCache: ${options && !options.cache}`)
 
     // Clear module from cache
     if (options && !options.cache) {
-      delete Module._cache[require.resolve(filename)];
+      delete Module._cache[require.resolve(filename)]
     }
 
     // attempt to import plugin
     // Require plugin to export a class
-    const defaultImport = sandbox.require(filename);
-    const plugin = (defaultImport && defaultImport.default) || defaultImport;
+    const defaultImport = sandbox.require(filename)
+    const plugin = (defaultImport && defaultImport.default) || defaultImport
 
     if (typeof plugin === 'function') {
-      return new NvimPlugin(filename, plugin, nvim);
+      return new NvimPlugin(filename, plugin, nvim)
     }
   } catch (err) {
-    const file = path.basename(filename);
-    debug(`[${file}] ${err.stack}`);
-    debug(`[${file}] Error loading child ChildPlugin ${filename}`);
+    const file = path.basename(filename)
+    debug(`[${file}] ${err.stack}`)
+    debug(`[${file}] Error loading child ChildPlugin ${filename}`)
   }
 
   // There may have been an error, but maybe not
-  return null;
+  return null
 }
 
 export function loadPlugin(
@@ -187,9 +187,9 @@ export function loadPlugin(
   options: LoadPluginOptions = {}
 ) {
   try {
-    return createPlugin(filename, nvim, options);
+    return createPlugin(filename, nvim, options)
   } catch (err) {
-    debug(`Could not load plugin "${filename}":, ${err.stack}`);
-    return null;
+    debug(`Could not load plugin "${filename}":, ${err.stack}`)
+    return null
   }
 }
