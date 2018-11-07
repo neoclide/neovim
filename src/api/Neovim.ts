@@ -17,7 +17,9 @@ export type UiAttachOptions = {
   // eslint-disable-next-line camelcase
   ext_cmdline?: boolean
   // eslint-disable-next-line camelcase
-  ext_newgrid?: boolean
+  ext_linegrid?: boolean
+  // eslint-disable-next-line camelcase
+  ext_hlstate?: boolean
 }
 
 export type Proc = {
