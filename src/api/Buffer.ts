@@ -20,6 +20,8 @@ export interface BufferClearHighlight {
   lineEnd?: number
 }
 
+type Chunk = [string, string]
+
 export class Buffer extends BaseApi {
   public prefix: string = Metadata[ExtType.Buffer].prefix
 
@@ -125,6 +127,26 @@ export class Buffer extends BaseApi {
       end,
       indexing,
       lines,
+    ])
+  }
+
+  /**
+   * Set virtual text for a line
+   *
+   * @public
+   * @param {number} src_id - Source group to use or 0 to use a new group, or -1
+   * @param {number} line - Line to annotate with virtual text (zero-indexed)
+   * @param {Chunk[]} chunks - List with [text, hl_group]
+   * @param {{[index} opts
+   * @returns {Promise<number>}
+   */
+  setVirtualText(src_id: number, line: number, chunks: Chunk[], opts: { [index: string]: any } = {}): Promise<number> {
+    return this.request(`${this.prefix}set_virtual_text`, [
+      this,
+      src_id,
+      line,
+      chunks,
+      opts,
     ])
   }
 
