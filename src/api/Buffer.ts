@@ -261,7 +261,6 @@ export class Buffer extends BaseApi {
 
   /** Clears highlights from a given source group and a range of
   lines
-
   To clear a source group in the entire buffer, pass in 1 and -1
   to lineStart and lineEnd respectively. */
   clearHighlight(args: BufferClearHighlight = {}) {
