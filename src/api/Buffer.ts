@@ -280,6 +280,15 @@ export class Buffer extends BaseApi {
     ])
   }
 
+  clearNamespace(id: number, lineStart = 0, lineEnd = -1) {
+    return this.notify(`${this.prefix}clear_namespace`, [
+      this,
+      id,
+      lineStart,
+      lineEnd,
+    ])
+  }
+
   /**
    * Listens to buffer for events
    */

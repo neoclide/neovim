@@ -72,6 +72,14 @@ export class Neovim extends BaseApi {
     return this.request(`${this.prefix}get_chan_info`, [chan])
   }
 
+  createNamespace(name = ""): Promise<number> {
+    return this.request(`${this.prefix}_create_namespace`, [name])
+  }
+
+  get namespaces(): Promise<{ [name: string]: number }> {
+    return this.request(`${this.prefix}_get_namespaces`, [name])
+  }
+
   get commands(): Promise<Object> {
     return this.getCommands()
   }
