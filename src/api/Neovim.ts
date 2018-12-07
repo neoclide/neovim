@@ -73,7 +73,7 @@ export class Neovim extends BaseApi {
   }
 
   createNamespace(name = ""): Promise<number> {
-    return this.request(`${this.prefix}_create_namespace`, [name])
+    return this.request(`${this.prefix}create_namespace`, [name])
   }
 
   get namespaces(): Promise<{ [name: string]: number }> {
