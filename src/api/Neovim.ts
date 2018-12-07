@@ -77,7 +77,7 @@ export class Neovim extends BaseApi {
   }
 
   get namespaces(): Promise<{ [name: string]: number }> {
-    return this.request(`${this.prefix}_get_namespaces`, [name])
+    return this.request(`${this.prefix}get_namespaces`, [name])
   }
 
   get commands(): Promise<Object> {
