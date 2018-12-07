@@ -1,7 +1,5 @@
 import { Transform } from 'stream'
 
-const MIN_SIZE = 8 * 1024
-
 export default class Buffered extends Transform {
   private chunks: Buffer[] | null
   private timer: NodeJS.Timer | null
@@ -26,6 +24,7 @@ export default class Buffered extends Transform {
   // eslint-disable-next-line consistent-return
   _transform(chunk: Buffer, _encoding: any, callback: any): void {
     const { chunks, timer } = this
+    const MIN_SIZE = Buffer.poolSize
 
     if (timer) clearTimeout(timer)
 
