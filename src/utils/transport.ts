@@ -150,8 +150,10 @@ class Transport extends EventEmitter {
       //   - msg[3]: result(if not errored)
       const id = msg[1]
       const handler = this.pending.get(id)
-      this.pending.delete(id)
-      handler(msg[2], msg[3])
+      if (handler) {
+        this.pending.delete(id)
+        handler(msg[2], msg[3])
+      }
     } else if (msgType === 2) {
       // notification/event
       //   - msg[1]: event name
