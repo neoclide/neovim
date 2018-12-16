@@ -415,7 +415,7 @@ export class Neovim extends BaseApi {
     methods: object,
     attributes: object
   ): void {
-    this.request(`${this.prefix}set_client_info`, [
+    this.notify(`${this.prefix}set_client_info`, [
       name,
       version,
       type,

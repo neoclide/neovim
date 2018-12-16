@@ -1,4 +1,4 @@
-export { Neovim } from './Neovim'
+export { NeovimClient as Neovim } from './client'
 export { NeovimClient } from './client'
 export { Buffer } from './Buffer'
 export { Window } from './Window'
