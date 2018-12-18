@@ -39,7 +39,9 @@ export class NeovimClient extends Neovim {
     super({
       logger: options.logger || createLogger('plugin'),
     })
-    Object.defineProperty(this, 'client', this)
+    Object.defineProperty(this, 'client', {
+      value: this
+    })
     const transport = options.transport || new Transport()
     this.setTransport(transport)
     this.requestQueue = []
