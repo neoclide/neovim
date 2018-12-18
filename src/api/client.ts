@@ -32,14 +32,14 @@ export class NeovimClient extends Neovim {
   private responses: Map<number, AsyncResponse> = new Map()
   private _channelId: number
   private attachedBuffers: Map<number, Map<string, Function[]>> = new Map()
+  private functions: string[]
 
   constructor(options: { transport?: Transport; logger?: ILogger } = {}) {
     // Neovim has no `data` or `metadata`
     super({
       logger: options.logger || createLogger('plugin'),
     })
-      ; (this as any).client = this
-
+    Object.defineProperty(this, 'client', this)
     const transport = options.transport || new Transport()
     this.setTransport(transport)
     this.requestQueue = []
@@ -61,9 +61,9 @@ export class NeovimClient extends Neovim {
     reader,
     writer,
   }: {
-      reader: NodeJS.ReadableStream
-      writer: NodeJS.WritableStream
-    }) {
+    reader: NodeJS.ReadableStream
+    writer: NodeJS.WritableStream
+  }) {
     this.transport.attach(writer, reader, this)
     this.transportAttached = true
     this.setupTransport()
@@ -229,17 +229,8 @@ export class NeovimClient extends Neovim {
 
     if (results) {
       try {
-        const [channelId, encodedMetadata] = results
-        const metadata = encodedMetadata
-        // this.logger.debug(`$$$: ${metadata}`)
-
-        // Perform sanity check for metadata types
-        Object.keys(metadata.types).forEach((name: string) => {
-          // @ts-ignore: Declared but its value is never read
-          const metaDataForType = metadata.types[name]; // eslint-disable-line no-unused-vars
-          // TODO: check `prefix` and `id`
-        })
-
+        const [channelId, metadata] = results
+        this.functions = metadata.functions.map(f => f.name)
         this._channelId = channelId
 
         // register the non-queueing handlers
@@ -309,5 +300,21 @@ export class NeovimClient extends Neovim {
     } else {
       bufferMap.set(eventName, handlers)
     }
+  }
+
+  pauseNotification(): void {
+    if (this.hasFunction('nvim_call_atomic')) {
+      this.transport.pauseNotification()
+    }
+  }
+
+  resumeNotification(cancel = false) {
+    if (this.hasFunction('nvim_call_atomic')) {
+      this.transport.resumeNotification(cancel)
+    }
+  }
+
+  hasFunction(name: string): boolean {
+    return this.functions.indexOf(name) !== -1
   }
 }

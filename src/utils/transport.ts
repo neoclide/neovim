@@ -47,6 +47,8 @@ class Transport extends EventEmitter {
   private writer: NodeJS.WritableStream
   protected codec: msgpack.Codec
   private attached = true
+  private paused: [string, any[]][] = []
+  private _paused = false
 
   // Neovim client that holds state
   private client: any
@@ -64,6 +66,16 @@ class Transport extends EventEmitter {
       this.detach()
       this.emit('detach')
     })
+  }
+
+  pauseNotification(): void {
+    this._paused = true
+  }
+
+  resumeNotification(cancel: boolean): void {
+    this._paused = false
+    if (!cancel) this.notify('nvim_call_atomic', [this.paused])
+    this.paused = []
   }
 
   setupCodec() {
@@ -122,6 +134,10 @@ class Transport extends EventEmitter {
 
   notify(method: string, args: any[]) {
     if (!this.attached) return
+    if (this._paused) {
+      this.paused.push([method, args])
+      return
+    }
     this.encodeStream.write(
       msgpack.encode([2, method, args], {
         codec: this.codec,
