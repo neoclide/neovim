@@ -141,13 +141,14 @@ export class Buffer extends BaseApi {
    * @returns {Promise<number>}
    */
   setVirtualText(src_id: number, line: number, chunks: Chunk[], opts: { [index: string]: any } = {}): Promise<number> {
-    return this.request(`${this.prefix}set_virtual_text`, [
+    this.notify(`${this.prefix}set_virtual_text`, [
       this,
       src_id,
       line,
       chunks,
       opts,
     ])
+    return Promise.resolve(src_id)
   }
 
   /** Insert lines at `start` index */
