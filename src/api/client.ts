@@ -33,6 +33,8 @@ export class NeovimClient extends Neovim {
   private _channelId: number
   private attachedBuffers: Map<number, Map<string, Function[]>> = new Map()
   private functions: string[]
+  private pauseLevel = 0
+  private pauseTimer: NodeJS.Timer
 
   constructor(options: { transport?: Transport; logger?: ILogger } = {}) {
     // Neovim has no `data` or `metadata`
@@ -305,14 +307,24 @@ export class NeovimClient extends Neovim {
   }
 
   pauseNotification(): void {
-    if (this.hasFunction('nvim_call_atomic')) {
-      this.transport.pauseNotification()
-    }
+    if (!this.hasFunction('nvim_call_atomic')) return
+    this.pauseLevel = this.pauseLevel + 1
+    this.transport.pauseNotification()
+    if (this.pauseTimer) clearTimeout(this.pauseTimer)
+    this.pauseTimer = setTimeout(() => {
+      this.pauseLevel = 0
+      this.transport.resumeNotification()
+    }, 50)
   }
 
-  resumeNotification(cancel = false) {
-    if (this.hasFunction('nvim_call_atomic')) {
-      this.transport.resumeNotification(cancel)
+  resumeNotification(cancel?: boolean) {
+    if (!this.hasFunction('nvim_call_atomic')) return
+    if (this.pauseLevel == 0) return
+    this.pauseLevel = this.pauseLevel - 1
+    if (cancel) return
+    if (this.pauseLevel == 0) {
+      if (this.pauseTimer) clearTimeout(this.pauseTimer)
+      this.transport.resumeNotification()
     }
   }
 
