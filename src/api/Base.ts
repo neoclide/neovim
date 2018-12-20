@@ -105,11 +105,8 @@ export class BaseApi extends EventEmitter {
 
     return this.request(`${this.prefix}get_var`, args).then(
       res => res,
-      err => {
-        if (err && err.message && err.message.includes('not found')) {
-          return null
-        }
-        throw err
+      _err => {
+        return null
       }
     )
   }
@@ -127,9 +124,9 @@ export class BaseApi extends EventEmitter {
   }
 
   /** Delete a scoped variable */
-  deleteVar(name: string): Promise<void> {
+  deleteVar(name: string): void {
     const args = this._getArgsByPrefix(name)
-    return this.request(`${this.prefix}del_var`, args)
+    this.notify(`${this.prefix}del_var`, args)
   }
 
   /** Retrieves a scoped option depending on type of `this` */
