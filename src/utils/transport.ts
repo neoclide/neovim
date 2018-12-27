@@ -119,6 +119,7 @@ class Transport extends EventEmitter {
   }
 
   detach() {
+    if (!this.attached) return
     this.attached = false
     this.encodeStream.unpipe(this.writer)
     this.reader.unpipe(this.decodeStream)

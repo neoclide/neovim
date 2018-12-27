@@ -426,6 +426,9 @@ export class Neovim extends BaseApi {
 
   /** Quit nvim */
   quit(): void {
+    if (this.transport) {
+      this.transport.detach()
+    }
     this.command('qa!')
   }
 }
