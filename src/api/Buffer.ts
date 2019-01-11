@@ -111,7 +111,8 @@ export class Buffer extends BaseApi {
     _lines: string | string[],
     { start: _start, end: _end, strictIndexing }: BufferSetLines = {
       strictIndexing: true,
-    }
+    },
+    notify = false
   ) {
     // TODO: Error checking
     // if (typeof start === 'undefined' || typeof end === 'undefined') {
@@ -120,8 +121,9 @@ export class Buffer extends BaseApi {
       typeof strictIndexing === 'undefined' ? true : strictIndexing
     const lines = typeof _lines === 'string' ? [_lines] : _lines
     const end = typeof _end !== 'undefined' ? _end : _start + 1
+    const method = notify ? 'notify' : 'request'
 
-    return this.request(`${this.prefix}set_lines`, [
+    return this[method](`${this.prefix}set_lines`, [
       this,
       _start,
       end,
