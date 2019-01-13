@@ -72,13 +72,19 @@ class Transport extends EventEmitter {
     this._paused = true
   }
 
-  resumeNotification(): void {
+  resumeNotification(): Promise<void> {
     this._paused = false
     let list = this.paused
     if (list.length) {
       this.paused = []
-      this.notify('nvim_call_atomic', [list])
+      return new Promise<void>((resolve, reject) => {
+        return this.request('nvim_call_atomic', [list], (err) => {
+          if (err) return reject(err)
+          resolve()
+        })
+      })
     }
+    return Promise.resolve()
   }
 
   setupCodec() {

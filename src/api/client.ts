@@ -317,15 +317,16 @@ export class NeovimClient extends Neovim {
     }, 50)
   }
 
-  resumeNotification(cancel?: boolean) {
-    if (!this.hasFunction('nvim_call_atomic')) return
-    if (this.pauseLevel == 0) return
+  resumeNotification(cancel?: boolean): Promise<void> {
+    if (!this.hasFunction('nvim_call_atomic')) return Promise.resolve()
+    if (this.pauseLevel == 0) return Promise.resolve()
     this.pauseLevel = this.pauseLevel - 1
-    if (cancel) return
+    if (cancel) return Promise.resolve()
     if (this.pauseLevel == 0) {
       if (this.pauseTimer) clearTimeout(this.pauseTimer)
-      this.transport.resumeNotification()
+      return this.transport.resumeNotification()
     }
+    return Promise.resolve()
   }
 
   hasFunction(name: string): boolean {
