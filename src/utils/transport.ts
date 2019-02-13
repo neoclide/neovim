@@ -186,7 +186,7 @@ class Transport extends EventEmitter {
       //   - msg[2]: arguments
       this.emit('notification', msg[1].toString(), msg[2])
     } else {
-      this.encodeStream.write([1, 0, 'Invalid message type', null])
+      console.error(`Invalid message type ${msgType}`)
     }
   }
 }
