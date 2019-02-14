@@ -5,6 +5,7 @@ import { AsyncBuffer, Buffer } from './Buffer'
 import { createChainableApi } from './helpers/createChainableApi'
 import { AsyncTabpage, Tabpage } from './Tabpage'
 import { AsyncWindow, Window } from './Window'
+const isVim = process.env.VIM_NODE_RPC == '1'
 
 export type UiAttachOptions = {
   rgb?: boolean
@@ -260,6 +261,26 @@ export class Neovim extends BaseApi {
       return null
     }
     return this.request(`${this.prefix}call_function`, [fname, _args])
+  }
+
+  /** Call a function with timer on vim*/
+  callTimer(fname: string, args?: VimValue | Array<VimValue>): Promise<null>
+  callTimer(fname: string, args: VimValue | Array<VimValue>, isNotify: true): null
+  callTimer(fname: string, args: VimValue | Array<VimValue> = [], isNotify?: boolean): Promise<null> {
+    const _args = this.getArgs(args)
+    if (isNotify) {
+      this.notify(`${this.prefix}call_function`, ['coc#util#timer', [fname, _args]])
+      return null
+    }
+    if (isVim) {
+      this.notify(`${this.prefix}call_function`, ['coc#util#timer', [fname, _args]])
+      return new Promise(resolve => {
+        setTimeout(() => {
+          resolve(null)
+        }, 20)
+      })
+    }
+    return this.request(`${this.prefix}call_function`, ['coc#util#timer', [fname, _args]])
   }
 
   callAsync(fname: string, args: VimValue | Array<VimValue> = []): Promise<any> {
