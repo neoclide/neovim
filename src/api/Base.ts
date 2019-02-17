@@ -136,8 +136,14 @@ export class BaseApi extends EventEmitter {
   }
 
   /** Set scoped option */
-  setOption(name: string, value: VimValue): Promise<void> | void {
+  setOption(name: string, value: VimValue): Promise<void>
+  setOption(name: string, value: VimValue, isNotify: true): void
+  setOption(name: string, value: VimValue, isNotify?: boolean): Promise<void> | void {
     const args = this._getArgsByPrefix(name, value)
+    if (isNotify) {
+      this.notify(`${this.prefix}set_option`, args)
+      return
+    }
     return this.request(`${this.prefix}set_option`, args)
   }
 
