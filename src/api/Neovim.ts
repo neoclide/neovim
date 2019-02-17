@@ -5,6 +5,7 @@ import { AsyncBuffer, Buffer } from './Buffer'
 import { createChainableApi } from './helpers/createChainableApi'
 import { AsyncTabpage, Tabpage } from './Tabpage'
 import { AsyncWindow, Window } from './Window'
+import { FloatOptions } from './types'
 const isVim = process.env.VIM_NODE_RPC == '1'
 
 export type UiAttachOptions = {
@@ -159,6 +160,14 @@ export class Neovim extends BaseApi {
     if (typeof line === 'string') {
       this.setLine(line)
     }
+  }
+
+  createBuffer(listed = false): Promise<Window> {
+    return this.request(`${this.prefix}create_buf`, [listed])
+  }
+
+  openFloatWindow(buffer: Buffer, enter: boolean, width: number, height: number, options: FloatOptions): Promise<Buffer> {
+    return this.request(`${this.prefix}open_float_win`, [buffer, enter, width, height, options])
   }
 
   getLine(): Promise<string> {

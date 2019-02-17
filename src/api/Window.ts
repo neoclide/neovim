@@ -1,5 +1,5 @@
 import { BaseApi } from './Base'
-import { ExtType, Metadata } from './types'
+import { ExtType, Metadata, FloatOptions } from './types'
 import { createChainableApi } from './helpers/createChainableApi'
 import { Tabpage, AsyncTabpage } from './Tabpage'
 import { Buffer, AsyncBuffer } from './Buffer'
@@ -87,5 +87,9 @@ export class Window extends BaseApi {
   /** Get window number */
   get number(): Promise<number> {
     return this.request(`${this.prefix}get_number`, [this])
+  }
+
+  configFloat(width: number, height: number, options: FloatOptions): Promise<void> {
+    return this.request(`${this.prefix}config_float`, [this, width, height, options])
   }
 }
