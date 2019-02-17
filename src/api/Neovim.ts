@@ -162,7 +162,7 @@ export class Neovim extends BaseApi {
     }
   }
 
-  createBuffer(listed = false): Promise<Window> {
+  createNewBuffer(listed = false): Promise<Window> {
     return this.request(`${this.prefix}create_buf`, [listed])
   }
 
