@@ -93,6 +93,6 @@ export class Window extends BaseApi {
   configFloat(width: number, height: number, options: FloatOptions, isNotify: true): null
   configFloat(width: number, height: number, options: FloatOptions, isNotify?: boolean): Promise<void> {
     let method = isNotify ? 'notify' : 'request'
-    return this[method](`${this.prefix}config_float`, [this, width, height, options])
+    return this[method](`${this.prefix}config`, [this, width, height, options])
   }
 }
