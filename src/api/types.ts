@@ -13,14 +13,14 @@ export interface ExtTypeConstructor<T> {
 
 export interface FloatOptions {
   standalone?: boolean
-  unfocusable?: boolean
-  relative?: 'editor' | 'cursor' | 'none'
+  focusable?: boolean
+  relative?: 'editor' | 'cursor' | 'win'
   anchor?: 'NW' | 'NE' | 'SW' | 'SE'
   row: number
   col: number
 }
 
-export type MetadataType = {
+export interface MetadataType {
   constructor: ExtTypeConstructor<Buffer | Tabpage | Window>
   name: string
   prefix: string

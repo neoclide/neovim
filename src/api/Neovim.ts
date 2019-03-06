@@ -1,14 +1,13 @@
 import { ApiInfo } from '../types/ApiInfo' // eslint-disable-line
 import { VimValue } from '../types/VimValue'
 import { BaseApi } from './Base'
-import { AsyncBuffer, Buffer } from './Buffer'
-import { createChainableApi } from './helpers/createChainableApi'
-import { AsyncTabpage, Tabpage } from './Tabpage'
-import { AsyncWindow, Window } from './Window'
+import { Buffer } from './Buffer'
+import { Tabpage } from './Tabpage'
+import { Window } from './Window'
 import { FloatOptions } from './types'
 const isVim = process.env.VIM_NODE_RPC == '1'
 
-export type UiAttachOptions = {
+export interface UiAttachOptions {
   rgb?: boolean
   // eslint-disable-next-line camelcase
   ext_popupmenu?: boolean
@@ -24,7 +23,7 @@ export type UiAttachOptions = {
   ext_hlstate?: boolean
 }
 
-export type Proc = {
+export interface Proc {
   ppid: number
   name: string
   pid: number
@@ -34,175 +33,151 @@ export type Proc = {
  * Neovim API
  */
 export class Neovim extends BaseApi {
-  protected prefix: string = 'nvim_'
+  protected prefix = 'nvim_'
   public Buffer = Buffer
   public Window = Window
   public Tabpage = Tabpage
 
-  private getArgs(args?: VimValue | Array<VimValue>): VimValue[] {
+  private getArgs(args?: VimValue | VimValue[]): VimValue[] {
     if (!args) return []
     if (Array.isArray(args)) return args
     return [args]
   }
 
-  get apiInfo(): Promise<[number, ApiInfo]> {
+  public get apiInfo(): Promise<[number, ApiInfo]> {
     return this.request(`${this.prefix}get_api_info`)
   }
 
   /** Get list of all buffers */
-  get buffers(): Promise<Buffer[]> {
+  public get buffers(): Promise<Buffer[]> {
     return this.request(`${this.prefix}list_bufs`)
   }
 
   /** Get current buffer */
-  get buffer(): AsyncBuffer {
-    return createChainableApi.call(this, 'Buffer', Buffer, () =>
-      this.request(`${this.prefix}get_current_buf`)
-    )
+  public get buffer(): Promise<Buffer> {
+    return this.request(`${this.prefix}get_current_buf`)
   }
 
   /** Set current buffer */
-  set buffer(buffer: AsyncBuffer) {
-    this.request(`${this.prefix}set_current_buf`, [buffer])
+  public async setBuffer(buffer: Buffer): Promise<void> {
+    await this.request(`${this.prefix}set_current_buf`, [buffer])
   }
 
-  get chans(): Promise<number[]> {
+  public get chans(): Promise<number[]> {
     return this.request(`${this.prefix}list_chans`)
   }
 
-  getChanInfo(chan: number): Promise<object> {
+  public getChanInfo(chan: number): Promise<object> {
     return this.request(`${this.prefix}get_chan_info`, [chan])
   }
 
-  createNamespace(name = ""): Promise<number> {
+  public createNamespace(name = ""): Promise<number> {
     return this.request(`${this.prefix}create_namespace`, [name])
   }
 
-  get namespaces(): Promise<{ [name: string]: number }> {
+  public get namespaces(): Promise<{ [name: string]: number }> {
     return this.request(`${this.prefix}get_namespaces`, [name])
   }
 
-  get commands(): Promise<Object> {
+  public get commands(): Promise<Object> {
     return this.getCommands()
   }
 
-  getCommands(options = {}): Promise<Object> {
+  public getCommands(options = {}): Promise<Object> {
     return this.request(`${this.prefix}get_commands`, [options])
   }
 
   /** Get list of all tabpages */
-  get tabpages(): Promise<Tabpage[]> {
+  public get tabpages(): Promise<Tabpage[]> {
     return this.request(`${this.prefix}list_tabpages`)
   }
 
   /** Get current tabpage */
-  get tabpage(): AsyncTabpage {
-    return createChainableApi.call(this, 'Tabpage', Tabpage, () =>
-      this.request(`${this.prefix}get_current_tabpage`)
-    )
+  public get tabpage(): Promise<Tabpage> {
+    return this.request(`${this.prefix}get_current_tabpage`)
   }
 
   /** Set current tabpage */
-  set tabpage(tabpage: AsyncTabpage) {
-    this.request(`${this.prefix}set_current_tabpage`, [tabpage])
+  public async setTabpage(tabpage: Tabpage): Promise<void> {
+    await this.request(`${this.prefix}set_current_tabpage`, [tabpage])
   }
 
   /** Get list of all windows */
-  get windows(): Promise<Window[]> {
+  public get windows(): Promise<Window[]> {
     return this.getWindows()
   }
 
   /** Get current window */
-  get window(): AsyncWindow {
-    return this.getWindow()
-  }
-
-  /** Set current window */
-  set window(win: AsyncWindow) {
-    this.setWindow(win)
+  public get window(): Promise<Window> {
+    return this.request(`${this.prefix}get_current_win`)
   }
 
   /** Get list of all windows */
-  getWindows(): Promise<Window[]> {
+  public getWindows(): Promise<Window[]> {
     return this.request(`${this.prefix}list_wins`)
   }
 
-  /** Get current window */
-  getWindow(): AsyncWindow {
-    return createChainableApi.call(this, 'Window', Window, () =>
-      this.request(`${this.prefix}get_current_win`)
-    )
-  }
-
-  setWindow(win: Window) {
+  public async setWindow(win: Window): Promise<void> {
     // Throw error if win is not instance of Window?
-    return this.request(`${this.prefix}set_current_win`, [win])
+    await this.request(`${this.prefix}set_current_win`, [win])
   }
 
   /** Get list of all runtime paths */
-  get runtimePaths(): Promise<string[]> {
+  public get runtimePaths(): Promise<string[]> {
     return this.request(`${this.prefix}list_runtime_paths`)
   }
 
   /** Set current directory */
-  set dir(dir: string) {
-    this.request(`${this.prefix}set_current_dir`, [dir])
+  public setDirectory(dir: string): Promise<void> {
+    return this.request(`${this.prefix}set_current_dir`, [dir])
   }
 
   /** Get current line. Always returns a Promise. */
-  get line(): string | Promise<string> {
+  public get line(): Promise<string> {
     return this.getLine()
   }
 
-  /** Set current line */
-  set line(line: string | Promise<string>) {
-    // Doing this to satisfy TS requirement that get/setters have to be same type
-    if (typeof line === 'string') {
-      this.setLine(line)
-    }
-  }
-
-  createNewBuffer(listed = false, scratch = false): Promise<Buffer> {
+  public createNewBuffer(listed = false, scratch = false): Promise<Buffer> {
     return this.request(`${this.prefix}create_buf`, [listed, scratch])
   }
 
-  openFloatWindow(buffer: Buffer, enter: boolean, width: number, height: number, options: FloatOptions): Promise<Window> {
+  public openFloatWindow(buffer: Buffer, enter: boolean, width: number, height: number, options: FloatOptions): Promise<Window> {
     return this.request(`${this.prefix}open_win`, [buffer, enter, width, height, options])
   }
 
-  getLine(): Promise<string> {
+  public getLine(): Promise<string> {
     return this.request(`${this.prefix}get_current_line`)
   }
 
   /** Set current line */
-  setLine(line: string): Promise<any> {
+  public setLine(line: string): Promise<any> {
     return this.request(`${this.prefix}set_current_line`, [line])
   }
 
   /** Gets keymap */
-  getKeymap(mode: string): Promise<Array<object>> {
+  public getKeymap(mode: string): Promise<object[]> {
     return this.request(`${this.prefix}get_keymap`, [mode])
   }
 
   /** Gets current mode */
-  get mode(): Promise<{ mode: string; blocking: boolean }> {
+  public get mode(): Promise<{ mode: string; blocking: boolean }> {
     return this.request(`${this.prefix}get_mode`)
   }
 
   /** Gets map of defined colors */
-  get colorMap(): Promise<{ [name: string]: number }> {
+  public get colorMap(): Promise<{ [name: string]: number }> {
     return this.request(`${this.prefix}get_color_map`)
   }
 
   /** Get color by name */
-  getColorByName(name: string): Promise<number> {
+  public getColorByName(name: string): Promise<number> {
     return this.request(`${this.prefix}get_color_by_name`, [name])
   }
 
   /** Get highlight by name or id */
-  getHighlight(
+  public getHighlight(
     nameOrId: string | number,
-    isRgb: boolean = true
+    isRgb = true
   ): Promise<object> | void {
     const functionName = typeof nameOrId === 'string' ? 'by_name' : 'by_id'
     return this.request(`${this.prefix}get_hl_${functionName}`, [
@@ -211,16 +186,16 @@ export class Neovim extends BaseApi {
     ])
   }
 
-  getHighlightByName(name: string, isRgb: boolean = true): Promise<object> {
+  public getHighlightByName(name: string, isRgb = true): Promise<object> {
     return this.request(`${this.prefix}get_hl_by_name`, [name, isRgb])
   }
 
-  getHighlightById(id: number, isRgb: boolean = true): Promise<object> {
+  public getHighlightById(id: number, isRgb = true): Promise<object> {
     return this.request(`${this.prefix}get_hl_by_id`, [id, isRgb])
   }
 
   /** Delete current line in buffer */
-  deleteCurrentLine(): Promise<any> {
+  public deleteCurrentLine(): Promise<any> {
     return this.request(`${this.prefix}del_current_line`)
   }
 
@@ -230,27 +205,27 @@ export class Neovim extends BaseApi {
    * generic error; v:errmsg is not updated.
    *
    */
-  eval(expr: string): Promise<VimValue> {
+  public eval(expr: string): Promise<VimValue> {
     return this.request(`${this.prefix}eval`, [expr])
   }
 
   /**
    * Executes lua, it's possible neovim client does not support this
    */
-  lua(code: string, args: Array<VimValue> = []): Promise<object> {
+  public lua(code: string, args: VimValue[] = []): Promise<object> {
     const _args = this.getArgs(args)
     return this.request(`${this.prefix}execute_lua`, [code, _args])
   }
 
   // Alias for `lua()` to be consistent with neovim API
-  executeLua(code: string, args: Array<VimValue> = []): Promise<object> {
+  public executeLua(code: string, args: VimValue[] = []): Promise<object> {
     return this.lua(code, args)
   }
 
-  callDictFunction(
+  public callDictFunction(
     dict: object,
     fname: string,
-    args: VimValue | Array<VimValue> = []
+    args: VimValue | VimValue[] = []
   ): object {
     const _args = this.getArgs(args)
     return this.request(`${this.prefix}call_dict_function`, [
@@ -261,9 +236,9 @@ export class Neovim extends BaseApi {
   }
 
   /** Call a vim function */
-  call(fname: string, args?: VimValue | Array<VimValue>): Promise<any>
-  call(fname: string, args: VimValue | Array<VimValue>, isNotify: true): null
-  call(fname: string, args: VimValue | Array<VimValue> = [], isNotify?: boolean): Promise<any | null> {
+  public call(fname: string, args?: VimValue | VimValue[]): Promise<any>
+  public call(fname: string, args: VimValue | VimValue[], isNotify: true): null
+  public call(fname: string, args: VimValue | VimValue[] = [], isNotify?: boolean): Promise<any | null> {
     const _args = this.getArgs(args)
     if (isNotify) {
       this.notify(`${this.prefix}call_function`, [fname, _args])
@@ -273,9 +248,9 @@ export class Neovim extends BaseApi {
   }
 
   /** Call a function with timer on vim*/
-  callTimer(fname: string, args?: VimValue | Array<VimValue>): Promise<null>
-  callTimer(fname: string, args: VimValue | Array<VimValue>, isNotify: true): null
-  callTimer(fname: string, args: VimValue | Array<VimValue> = [], isNotify?: boolean): Promise<null> {
+  public callTimer(fname: string, args?: VimValue | VimValue[]): Promise<null>
+  public callTimer(fname: string, args: VimValue | VimValue[], isNotify: true): null
+  public callTimer(fname: string, args: VimValue | VimValue[] = [], isNotify?: boolean): Promise<null> {
     const _args = this.getArgs(args)
     if (isNotify) {
       this.notify(`${this.prefix}call_function`, ['coc#util#timer', [fname, _args]])
@@ -292,25 +267,25 @@ export class Neovim extends BaseApi {
     return this.request(`${this.prefix}call_function`, ['coc#util#timer', [fname, _args]])
   }
 
-  callAsync(fname: string, args: VimValue | Array<VimValue> = []): Promise<any> {
+  public callAsync(fname: string, args: VimValue | VimValue[] = []): Promise<any> {
     const _args = this.getArgs(args)
     return this.client.sendAsyncRequest(fname, _args)
   }
 
   /** Alias for `call` */
-  callFunction(fname: string, args: VimValue | Array<VimValue> = []): Promise<any> | null {
+  public callFunction(fname: string, args: VimValue | VimValue[] = []): Promise<any> | null {
     return this.call(fname, args)
   }
 
   /** Call Atomic calls */
-  callAtomic(calls: Array<[string, VimValue[]]>): Promise<[Array<any>, boolean]> {
+  public callAtomic(calls: [string, VimValue[]][]): Promise<[any[], boolean]> {
     return this.request(`${this.prefix}call_atomic`, [calls])
   }
 
   /** Runs a vim command */
-  command(arg: string): Promise<any>
-  command(arg: string, isNotify: true): null
-  command(arg: string, isNotify?: boolean): Promise<any> | null {
+  public command(arg: string): Promise<any>
+  public command(arg: string, isNotify: true): null
+  public command(arg: string, isNotify?: boolean): Promise<any> | null {
     if (isNotify) {
       this.notify(`${this.prefix}command`, [arg])
       return null
@@ -319,22 +294,22 @@ export class Neovim extends BaseApi {
   }
 
   /** Runs a command and returns output (synchronous?) */
-  commandOutput(arg: string): Promise<string> {
+  public commandOutput(arg: string): Promise<string> {
     return this.request(`${this.prefix}command_output`, [arg])
   }
 
   /** Gets a v: variable */
-  getVvar(name: string): Promise<VimValue> {
+  public getVvar(name: string): Promise<VimValue> {
     return this.request(`${this.prefix}get_vvar`, [name])
   }
 
   /** feedKeys */
-  feedKeys(keys: string, mode: string, escapeCsi: boolean): Promise<any> {
+  public feedKeys(keys: string, mode: string, escapeCsi: boolean): Promise<any> {
     return this.request(`${this.prefix}feedkeys`, [keys, mode, escapeCsi])
   }
 
   /** Sends input keys */
-  input(keys: string): Promise<number> {
+  public input(keys: string): Promise<number> {
     return this.request(`${this.prefix}input`, [keys])
   }
 
@@ -343,7 +318,7 @@ export class Neovim extends BaseApi {
    *
    * TODO: return type, see :help
    */
-  parseExpression(
+  public parseExpression(
     expr: string,
     flags: string,
     highlight: boolean
@@ -355,16 +330,16 @@ export class Neovim extends BaseApi {
     ])
   }
 
-  getProc(pid: number): Promise<Proc> {
+  public getProc(pid: number): Promise<Proc> {
     return this.request(`${this.prefix}get_proc`, [pid])
   }
 
-  getProcChildren(pid: number): Promise<Proc[]> {
+  public getProcChildren(pid: number): Promise<Proc[]> {
     return this.request(`${this.prefix}get_proc_children`, [pid])
   }
 
   /** Replace term codes */
-  replaceTermcodes(
+  public replaceTermcodes(
     str: string,
     fromPart: boolean,
     doIt: boolean,
@@ -379,35 +354,35 @@ export class Neovim extends BaseApi {
   }
 
   /** Gets width of string */
-  strWidth(str: string): Promise<number> {
+  public strWidth(str: string): Promise<number> {
     return this.request(`${this.prefix}strwidth`, [str])
   }
 
   /** Write to output buffer */
-  outWrite(str: string): Promise<any> {
+  public outWrite(str: string): Promise<any> {
     return this.request(`${this.prefix}out_write`, [str])
   }
 
-  outWriteLine(str: string): Promise<any> {
+  public outWriteLine(str: string): Promise<any> {
     return this.outWrite(`${str}\n`)
   }
 
   /** Write to error buffer */
-  errWrite(str: string): Promise<any> {
+  public errWrite(str: string): Promise<any> {
     return this.request(`${this.prefix}err_write`, [str])
   }
 
   /** Write to error buffer */
-  errWriteLine(str: string): Promise<any> {
+  public errWriteLine(str: string): Promise<any> {
     return this.request(`${this.prefix}err_writeln`, [str])
   }
 
   // TODO: add type
-  get uis(): Promise<any[]> {
+  public get uis(): Promise<any[]> {
     return this.request(`${this.prefix}list_uis`)
   }
 
-  uiAttach(
+  public uiAttach(
     width: number,
     height: number,
     options: UiAttachOptions
@@ -415,30 +390,30 @@ export class Neovim extends BaseApi {
     return this.request(`${this.prefix}ui_attach`, [width, height, options])
   }
 
-  uiDetach(): Promise<void> {
+  public uiDetach(): Promise<void> {
     return this.request(`${this.prefix}ui_detach`, [])
   }
 
-  uiTryResize(width: number, height: number): Promise<void> {
+  public uiTryResize(width: number, height: number): Promise<void> {
     return this.request(`${this.prefix}ui_try_resize`, [width, height])
   }
 
   /** Set UI Option */
-  uiSetOption(name: string, value: any): Promise<void> {
+  public uiSetOption(name: string, value: any): Promise<void> {
     return this.request(`${this.prefix}ui_set_option`, [name, value])
   }
 
   /** Subscribe to nvim event broadcasts */
-  subscribe(event: string): Promise<void> {
+  public subscribe(event: string): Promise<void> {
     return this.request(`${this.prefix}subscribe`, [event])
   }
 
   /** Unsubscribe to nvim event broadcasts */
-  unsubscribe(event: string): Promise<void> {
+  public unsubscribe(event: string): Promise<void> {
     return this.request(`${this.prefix}unsubscribe`, [event])
   }
 
-  setClientInfo(
+  public setClientInfo(
     name: string,
     version: object,
     type: string,
@@ -455,10 +430,10 @@ export class Neovim extends BaseApi {
   }
 
   /** Quit nvim */
-  quit(): void {
+  public async quit(): Promise<void> {
     if (this.transport) {
       this.transport.detach()
     }
-    this.command('qa!')
+    await this.command('qa!')
   }
 }
