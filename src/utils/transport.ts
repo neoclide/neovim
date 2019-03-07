@@ -21,7 +21,7 @@ class Response {
     this.requestId = requestId
   }
 
-  send(resp: any, isError?: boolean): void {
+  public send(resp: any, isError?: boolean): void {
     if (this.sent) {
       throw new Error(`Response to id ${this.requestId} already sent`)
     }
@@ -40,7 +40,7 @@ class Response {
 
 class Transport extends EventEmitter {
   private pending: Map<number, Function> = new Map()
-  private nextRequestId: number = 1
+  private nextRequestId = 1
   private encodeStream: any
   private decodeStream: any
   private reader: NodeJS.ReadableStream
@@ -68,17 +68,17 @@ class Transport extends EventEmitter {
     })
   }
 
-  pauseNotification(): void {
+  public pauseNotification(): void {
     this._paused = true
   }
 
-  resumeNotification(): Promise<void> {
+  public resumeNotification(): Promise<void> {
     this._paused = false
     let list = this.paused
     if (list.length) {
       this.paused = []
       return new Promise<void>((resolve, reject) => {
-        return this.request('nvim_call_atomic', [list], (err) => {
+        return this.request('nvim_call_atomic', [list], err => {
           if (err) return reject(err)
           resolve()
         })
@@ -87,7 +87,7 @@ class Transport extends EventEmitter {
     return Promise.resolve()
   }
 
-  setupCodec() {
+  private setupCodec(): msgpack.Codec {
     const codec = msgpack.createCodec()
 
     Metadata.forEach(
@@ -111,11 +111,11 @@ class Transport extends EventEmitter {
     return this.codec
   }
 
-  attach(
+  public attach(
     writer: NodeJS.WritableStream,
     reader: NodeJS.ReadableStream,
     client: any
-  ) {
+  ): void {
     this.encodeStream = this.encodeStream.pipe(writer)
     const buffered = new Buffered()
     reader.pipe(buffered).pipe(this.decodeStream)
@@ -124,14 +124,14 @@ class Transport extends EventEmitter {
     this.client = client
   }
 
-  detach() {
+  public detach(): void {
     if (!this.attached) return
     this.attached = false
     this.encodeStream.unpipe(this.writer)
     this.reader.unpipe(this.decodeStream)
   }
 
-  request(method: string, args: any[], cb: Function) {
+  public request(method: string, args: any[], cb: Function): any {
     if (!this.attached) return cb()
     this.nextRequestId = this.nextRequestId + 1
     this.encodeStream.write(
@@ -142,7 +142,7 @@ class Transport extends EventEmitter {
     this.pending.set(this.nextRequestId, cb)
   }
 
-  notify(method: string, args: any[]) {
+  public notify(method: string, args: any[]): void {
     if (!this.attached) return
     if (this._paused) {
       this.paused.push([method, args])
@@ -155,7 +155,7 @@ class Transport extends EventEmitter {
     )
   }
 
-  parseMessage(msg: any[]) {
+  private parseMessage(msg: any[]): void {
     const msgType = msg[0]
 
     if (msgType === 0) {
@@ -186,6 +186,7 @@ class Transport extends EventEmitter {
       //   - msg[2]: arguments
       this.emit('notification', msg[1].toString(), msg[2])
     } else {
+      // tslint:disable-next-line: no-console
       console.error(`Invalid message type ${msgType}`)
     }
   }

@@ -24,33 +24,42 @@ export class Window extends BaseApi {
   }
 
   /** Get cursor position */
-  public get cursor(): [number, number] | Promise<[number, number]> {
+  public get cursor(): Promise<[number, number]> {
     return this.request(`${this.prefix}get_cursor`, [this])
   }
 
   /** Set cursor position */
-  public set cursor(pos: [number, number] | Promise<[number, number]>) {
-    this.request(`${this.prefix}set_cursor`, [this, pos])
+  public setCursor(pos: [number, number]): Promise<void>
+  public setCursor(pos: [number, number], isNotify: true): null
+  public setCursor(pos: [number, number], isNotify = false): Promise<void> | null {
+    let method = isNotify ? 'notify' : 'request'
+    return this[method](`${this.prefix}set_cursor`, [this, pos])
   }
 
   /** Get window height by number of rows */
-  public get height(): number | Promise<number> {
+  public get height(): Promise<number> {
     return this.request(`${this.prefix}get_height`, [this])
   }
 
   /** Set window height by number of rows */
-  public set height(height: number | Promise<number>) {
-    this.request(`${this.prefix}set_height`, [this, height])
+  public setHeight(height: number): Promise<void>
+  public setHeight(height: number, isNotify: true): null
+  public setHeight(height: number, isNotify = false): Promise<void> | null {
+    let method = isNotify ? 'notify' : 'request'
+    return this[method](`${this.prefix}set_height`, [this, height])
   }
 
   /** Get window width by number of columns */
-  public get width(): number | Promise<number> {
+  public get width(): Promise<number> {
     return this.request(`${this.prefix}get_width`, [this])
   }
 
   /** Set window width by number of columns  */
-  public set width(width: number | Promise<number>) {
-    this.request(`${this.prefix}set_width`, [this, width])
+  public setWidth(width: number): Promise<void>
+  public setWidth(width: number, isNotify: true): null
+  public setWidth(width: number, isNotify = false): Promise<void> | null {
+    let method = isNotify ? 'notify' : 'request'
+    return this[method](`${this.prefix}set_height`, [this, width])
   }
 
   /** Get window position */
@@ -90,6 +99,9 @@ export class Window extends BaseApi {
   }
 
   public close(force = true): Promise<void> {
-    return this.request(`${this.prefix}close`, [this, force])
+    if (this.client.hasFunction('nvim_win_close')) {
+      return this.request(`${this.prefix}close`, [this, force])
+    }
+    return this.request(`nvim_call_function`, ['coc#util#close_win', [this.id]])
   }
 }

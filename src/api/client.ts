@@ -16,7 +16,7 @@ export class AsyncResponse {
   constructor(public readonly requestId: number, private cb: Callback) {
   }
 
-  finish(err?: string | null, res?: any): void {
+  public finish(err?: string | null, res?: any): void {
     if (err) {
       this.cb(new Error(err))
       return
@@ -26,7 +26,7 @@ export class AsyncResponse {
 }
 
 export class NeovimClient extends Neovim {
-  protected requestQueue: Array<any>
+  protected requestQueue: any[]
   private requestId = 1
   private transportAttached: boolean
   private responses: Map<number, AsyncResponse> = new Map()
@@ -52,7 +52,7 @@ export class NeovimClient extends Neovim {
     this.handleNotification = this.handleNotification.bind(this)
   }
 
-  createBuffer(id: number): Buffer {
+  public createBuffer(id: number): Buffer {
     return new Buffer({
       transport: this.transport,
       data: id,
@@ -61,23 +61,23 @@ export class NeovimClient extends Neovim {
   }
 
   /** Attaches msgpack to read/write streams * */
-  attach({
+  public attach({
     reader,
     writer,
   }: {
     reader: NodeJS.ReadableStream
     writer: NodeJS.WritableStream
-  }) {
+  }): void {
     this.transport.attach(writer, reader, this)
     this.transportAttached = true
     this.setupTransport()
   }
 
-  get isApiReady(): boolean {
+  public get isApiReady(): boolean {
     return this.transportAttached && typeof this._channelId !== 'undefined'
   }
 
-  get channelId(): Promise<number> {
+  public get channelId(): Promise<number> {
     return new Promise(async resolve => {
       await this._isReady
       resolve(this._channelId)
@@ -88,12 +88,12 @@ export class NeovimClient extends Neovim {
     return this.attachedBuffers.has(bufnr)
   }
 
-  handleRequest(
+  private handleRequest(
     method: string,
     args: VimValue[],
     resp: any,
     ...restArgs: any[]
-  ) {
+  ): void {
     this.logger.debug(`handleRequest: ${method}`)
     // If neovim API is not generated yet and we are not handle a 'specs' request
     // then queue up requests
@@ -109,7 +109,7 @@ export class NeovimClient extends Neovim {
     }
   }
 
-  sendAsyncRequest(method: string, args: any[]): Promise<any> {
+  public sendAsyncRequest(method: string, args: any[]): Promise<any> {
     let id = this.requestId
     this.requestId = id + 1
     this.notify('nvim_call_function', ['coc#rpc#async_request', [id, method, args || []]])
@@ -122,7 +122,7 @@ export class NeovimClient extends Neovim {
     })
   }
 
-  emitNotification(method: string, args: any[]) {
+  private emitNotification(method: string, args: any[]): void {
     if (method.endsWith('_event')) {
       if (method.startsWith('nvim_buf_')) {
         const shortName = method.replace(/nvim_buf_(.*)_event/, '$1')
@@ -172,7 +172,7 @@ export class NeovimClient extends Neovim {
     }
   }
 
-  handleNotification(method: string, args: VimValue[], ...restArgs: any[]) {
+  private handleNotification(method: string, args: VimValue[], ...restArgs: any[]): void {
     this.logger.info(`handleNotification: ${method}`)
     // If neovim API is not generated yet then queue up requests
     //
@@ -188,7 +188,7 @@ export class NeovimClient extends Neovim {
   }
 
   // Listen and setup handlers for transport
-  setupTransport() {
+  private setupTransport(): void {
     if (!this.transportAttached) {
       throw new Error('Not attached to input/output')
     }
@@ -205,7 +205,7 @@ export class NeovimClient extends Neovim {
     this._isReady = this.generateApi()
   }
 
-  requestApi(): Promise<any[]> {
+  public requestApi(): Promise<any[]> {
     return new Promise((resolve, reject) => {
       this.transport.request(
         'nvim_get_api_info',
@@ -221,7 +221,7 @@ export class NeovimClient extends Neovim {
     })
   }
 
-  async generateApi(): Promise<null | boolean> {
+  public async generateApi(): Promise<null | boolean> {
     let results
 
     try {
@@ -259,38 +259,33 @@ export class NeovimClient extends Neovim {
     return null
   }
 
-  [ATTACH_BUFFER](buffer: Buffer): void {
+  public [ATTACH_BUFFER](buffer: Buffer): void {
     this.attachedBuffers.set(buffer.id, new Map())
   }
 
-  [DETACH_BUFFER](buffer: Buffer): void {
+  public [DETACH_BUFFER](buffer: Buffer): void {
     this.attachedBuffers.delete(buffer.id)
   }
 
-  attachBufferEvent(buffer: Buffer, eventName: string, cb: Function) {
-
-    if (!this.isAttached(buffer.id)) {
-      console.error(`${buffer.id} is detached`)
-      return null
-    }
-
+  public attachBufferEvent(buffer: Buffer, eventName: string, cb: Function): void {
+    if (!this.isAttached(buffer.id)) return
     const bufferMap = this.attachedBuffers.get(buffer.id)
     if (!bufferMap.get(eventName)) {
       bufferMap.set(eventName, [])
     }
 
     const cbs = bufferMap.get(eventName)
-    if (cbs.indexOf(cb) !== -1) return cb
+    if (cbs.indexOf(cb) !== -1) return
     cbs.push(cb)
     bufferMap.set(eventName, cbs)
     this.attachedBuffers.set(buffer.id, bufferMap)
-    return cb
+    return
   }
 
   /**
    * Returns `true` if buffer should be detached
    */
-  detachBufferEvent(buffer: Buffer, eventName: string, cb: Function) {
+  public detachBufferEvent(buffer: Buffer, eventName: string, cb: Function): void {
     const bufferMap = this.attachedBuffers.get(buffer.id)
     if (!bufferMap) return
 
@@ -306,7 +301,7 @@ export class NeovimClient extends Neovim {
     }
   }
 
-  pauseNotification(): void {
+  public pauseNotification(): void {
     if (!this.hasFunction('nvim_call_atomic')) return
     this.pauseLevel = this.pauseLevel + 1
     this.transport.pauseNotification()
@@ -317,7 +312,7 @@ export class NeovimClient extends Neovim {
     }, 50)
   }
 
-  resumeNotification(cancel?: boolean): Promise<void> {
+  public resumeNotification(cancel?: boolean): Promise<void> {
     if (!this.hasFunction('nvim_call_atomic')) return Promise.resolve()
     if (this.pauseLevel == 0) return Promise.resolve()
     this.pauseLevel = this.pauseLevel - 1
@@ -329,7 +324,7 @@ export class NeovimClient extends Neovim {
     return Promise.resolve()
   }
 
-  hasFunction(name: string): boolean {
+  public hasFunction(name: string): boolean {
     return this.functions.indexOf(name) !== -1
   }
 }

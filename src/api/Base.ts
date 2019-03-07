@@ -7,7 +7,7 @@ import * as util from 'util'
 import { NeovimClient } from './client'
 const debug = util.debuglog('nvim-api')
 
-export type BaseConstructorOptions = {
+export interface BaseConstructorOptions {
   transport?: Transport
   logger?: ILogger
   data?: number
@@ -32,7 +32,7 @@ export class BaseApi extends EventEmitter {
   protected _isReady: Promise<boolean>
   protected prefix: string
   public logger: ILogger
-  public data: Buffer | Number; // Node Buffer
+  public data: Buffer | Number // Node Buffer
   protected client: NeovimClient
 
   constructor({
@@ -54,11 +54,11 @@ export class BaseApi extends EventEmitter {
     }
   }
 
-  protected setTransport(transport: Transport) {
+  protected setTransport(transport: Transport): void {
     this.transport = transport
   }
 
-  equals(other: BaseApi) {
+  public equals(other: BaseApi): boolean {
     try {
       return String(this.data) === String(other.data)
     } catch (e) {
@@ -66,7 +66,7 @@ export class BaseApi extends EventEmitter {
     }
   }
 
-  [DO_REQUEST] = (name: string, args: any[] = []): Promise<any> =>
+  public [DO_REQUEST] = (name: string, args: any[] = []): Promise<any> =>
     new Promise((resolve, reject) => {
       this.transport.request(name, args, (err: any, res: any) => {
         debug(`response -> neovim.api.${name}: ${res}`)
@@ -79,7 +79,7 @@ export class BaseApi extends EventEmitter {
       // tslint:disable-next-line
     })
 
-  async request(name: string, args: any[] = []): Promise<any> {
+  public async request(name: string, args: any[] = []): Promise<any> {
     // `this._isReady` is undefined in ExtType classes (i.e. Buffer, Window, Tabpage)
     // But this is just for Neovim API, since it's possible to call this method from Neovim class
     // before transport is ready.
@@ -100,7 +100,7 @@ export class BaseApi extends EventEmitter {
   }
 
   /** Retrieves a scoped variable depending on type (using `this.prefix`) */
-  getVar(name: string): Promise<VimValue> {
+  public getVar(name: string): Promise<VimValue> {
     const args = this._getArgsByPrefix(name)
 
     return this.request(`${this.prefix}get_var`, args).then(
@@ -112,9 +112,9 @@ export class BaseApi extends EventEmitter {
   }
 
   /** Set a scoped variable */
-  setVar(name: string, value: VimValue, isNotify: true): void
-  setVar(name: string, value: VimValue, isNotify?: false): Promise<void>
-  setVar(name: string, value: VimValue, isNotify = false): Promise<void> | void {
+  public setVar(name: string, value: VimValue, isNotify: true): void
+  public setVar(name: string, value: VimValue, isNotify?: false): Promise<void>
+  public setVar(name: string, value: VimValue, isNotify = false): Promise<void> | void {
     const args = this._getArgsByPrefix(name, value)
     if (isNotify) {
       this.notify(`${this.prefix}set_var`, args)
@@ -124,21 +124,21 @@ export class BaseApi extends EventEmitter {
   }
 
   /** Delete a scoped variable */
-  deleteVar(name: string): void {
+  public deleteVar(name: string): void {
     const args = this._getArgsByPrefix(name)
     this.notify(`${this.prefix}del_var`, args)
   }
 
   /** Retrieves a scoped option depending on type of `this` */
-  getOption(name: string): Promise<VimValue> {
+  public getOption(name: string): Promise<VimValue> {
     const args = this._getArgsByPrefix(name)
     return this.request(`${this.prefix}get_option`, args)
   }
 
   /** Set scoped option */
-  setOption(name: string, value: VimValue): Promise<void>
-  setOption(name: string, value: VimValue, isNotify: true): void
-  setOption(name: string, value: VimValue, isNotify?: boolean): Promise<void> | void {
+  public setOption(name: string, value: VimValue): Promise<void>
+  public setOption(name: string, value: VimValue, isNotify: true): void
+  public setOption(name: string, value: VimValue, isNotify?: boolean): Promise<void> | void {
     const args = this._getArgsByPrefix(name, value)
     if (isNotify) {
       this.notify(`${this.prefix}set_option`, args)
