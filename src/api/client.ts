@@ -308,18 +308,20 @@ export class NeovimClient extends Neovim {
     if (this.pauseTimer) clearTimeout(this.pauseTimer)
     this.pauseTimer = setTimeout(() => {
       this.pauseLevel = 0
+      // tslint:disable-next-line: no-floating-promises
       this.transport.resumeNotification()
     }, 50)
   }
 
-  public resumeNotification(cancel?: boolean): Promise<void> {
+  public resumeNotification(cancel?: boolean, notify?: boolean): Promise<void> {
     if (!this.hasFunction('nvim_call_atomic')) return Promise.resolve()
     if (this.pauseLevel == 0) return Promise.resolve()
     this.pauseLevel = this.pauseLevel - 1
     if (cancel) return Promise.resolve()
     if (this.pauseLevel == 0) {
       if (this.pauseTimer) clearTimeout(this.pauseTimer)
-      return this.transport.resumeNotification()
+      if (!notify) return this.transport.resumeNotification()
+      this.transport.resumeNotification(true)
     }
     return Promise.resolve()
   }
