@@ -72,16 +72,20 @@ class Transport extends EventEmitter {
     this._paused = true
   }
 
-  public resumeNotification(): Promise<void> {
+  public resumeNotification(): Promise<void>
+  public resumeNotification(isNotify: true): null
+  public resumeNotification(isNotify = false): Promise<void> | null {
     this._paused = false
     let list = this.paused
     if (list.length) {
       this.paused = []
       return new Promise<void>((resolve, reject) => {
-        return this.request('nvim_call_atomic', [list], err => {
+        if (!isNotify) return this.request('nvim_call_atomic', [list], err => {
           if (err) return reject(err)
           resolve()
         })
+        this.notify('nvim_call_atomic', [list])
+        resolve()
       })
     }
     return Promise.resolve()
