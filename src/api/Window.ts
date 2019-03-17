@@ -95,7 +95,7 @@ export class Window extends BaseApi {
   public setConfig(options: FloatOptions, isNotify: true): null
   public setConfig(options: FloatOptions, isNotify?: boolean): Promise<void> {
     let method = isNotify ? 'notify' : 'request'
-    return this[method](`${this.prefix}config`, [this, options])
+    return this[method](`${this.prefix}set_config`, [this, options])
   }
 
   public get getConfig(): Promise<FloatOptions> {
