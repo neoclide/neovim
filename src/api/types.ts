@@ -16,6 +16,8 @@ export interface FloatOptions {
   focusable?: boolean
   relative?: 'editor' | 'cursor' | 'win'
   anchor?: 'NW' | 'NE' | 'SW' | 'SE'
+  height: number
+  width: number
   row: number
   col: number
 }

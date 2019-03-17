@@ -141,8 +141,8 @@ export class Neovim extends BaseApi {
     return this.request(`${this.prefix}create_buf`, [listed, scratch])
   }
 
-  public openFloatWindow(buffer: Buffer, enter: boolean, width: number, height: number, options: FloatOptions): Promise<Window> {
-    return this.request(`${this.prefix}open_win`, [buffer, enter, width, height, options])
+  public openFloatWindow(buffer: Buffer, enter: boolean, options: FloatOptions): Promise<Window> {
+    return this.request(`${this.prefix}open_win`, [buffer, enter, options])
   }
 
   public getLine(): Promise<string> {
