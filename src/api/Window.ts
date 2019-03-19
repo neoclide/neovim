@@ -98,7 +98,7 @@ export class Window extends BaseApi {
     return this[method](`${this.prefix}set_config`, [this, options])
   }
 
-  public get getConfig(): Promise<FloatOptions> {
+  public getConfig(): Promise<FloatOptions> {
     return this.request(`${this.prefix}get_config`, [this])
   }
 
