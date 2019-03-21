@@ -16,8 +16,8 @@ export function attach({
   proc,
   socket,
 }: Attach, logger?: ILogger): NeovimClient {
-  let writer
-  let reader
+  let writer: NodeJS.WritableStream
+  let reader: NodeJS.ReadableStream
   let neovim: NeovimClient
   logger = logger || createLogger('node-client')
 
@@ -38,6 +38,11 @@ export function attach({
       neovim.detach()
     })
   }
+  writer.on('error', err => {
+    if (err.code == 'EPIPE') {
+      neovim.detach()
+    }
+  })
 
   if (writer && reader) {
     neovim = new NeovimClient({ logger })
