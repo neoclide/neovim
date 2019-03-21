@@ -2,10 +2,8 @@ import { EventEmitter } from 'events'
 
 import { Transport } from '../utils/transport'
 import { VimValue } from '../types/VimValue'
-import { createLogger, ILogger } from '../utils/logger'
-import * as util from 'util'
+import { ILogger } from '../utils/logger'
 import { NeovimClient } from './client'
-const debug = util.debuglog('nvim-api')
 
 export interface BaseConstructorOptions {
   transport?: Transport
@@ -39,19 +37,14 @@ export class BaseApi extends EventEmitter {
     transport,
     data,
     logger,
-    metadata,
     client,
   }: BaseConstructorOptions) {
     super()
 
     this.setTransport(transport)
     this.data = data
-    this.logger = logger || createLogger('plugin')
+    this.logger = logger
     this.client = client
-
-    if (metadata) {
-      Object.defineProperty(this, 'metadata', { value: metadata })
-    }
   }
 
   protected setTransport(transport: Transport): void {
@@ -69,7 +62,6 @@ export class BaseApi extends EventEmitter {
   public [DO_REQUEST] = (name: string, args: any[] = []): Promise<any> =>
     new Promise((resolve, reject) => {
       this.transport.request(name, args, (err: any, res: any) => {
-        debug(`response -> neovim.api.${name}: ${res}`)
         if (err) {
           reject(new Error(`request ${name} - ${err[1]}`))
         } else {
@@ -85,11 +77,10 @@ export class BaseApi extends EventEmitter {
     // before transport is ready.
     // Not possible for ExtType classes since they are only created after transport is ready
     await this._isReady
-    debug(`request -> neovim.api.${name}`)
     return this[DO_REQUEST](name, args)
   }
 
-  _getArgsByPrefix(...args: any[]) {
+  protected _getArgsByPrefix(...args: any[]): string[] {
     const _args = []
 
     // Check if class is Neovim and if so, should not send `this` as first arg
@@ -148,8 +139,7 @@ export class BaseApi extends EventEmitter {
   }
 
   /** `request` is basically the same except you can choose to wait forpromise to be resolved */
-  notify(name: string, args: any[]) {
-    debug(`notify -> neovim.api.${name}`)
+  public notify(name: string, args: any[]): void {
     this.transport.notify(name, args)
   }
 }

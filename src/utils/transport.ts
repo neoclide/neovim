@@ -8,35 +8,13 @@ import * as msgpack from 'msgpack-lite'
 
 import Buffered from './buffered'
 import { Metadata } from '../api/types'
+import { ILogger } from './logger'
 
-export type Check = () => boolean
-
-class Response {
-  private requestId: number
-  private sent: boolean
-  private encoder: NodeJS.WritableStream
-
-  constructor(encoder: NodeJS.WritableStream, requestId: number, private check: Check) {
-    this.encoder = encoder
-    this.requestId = requestId
-  }
-
-  public send(resp: any, isError?: boolean): void {
-    if (this.sent) {
-      throw new Error(`Response to id ${this.requestId} already sent`)
-    }
-    if (!this.check()) return
-    this.encoder.write(
-      msgpack.encode([
-        1,
-        this.requestId,
-        isError ? resp : null,
-        !isError ? resp : null,
-      ])
-    )
-    this.sent = true
-  }
+interface Response {
+  send: (resp: any, isError?: boolean) => void
 }
+
+const debug = process.env.NVIM_NODE_CLIENT == 'debug'
 
 class Transport extends EventEmitter {
   private pending: Map<number, Function> = new Map()
@@ -46,9 +24,10 @@ class Transport extends EventEmitter {
   private reader: NodeJS.ReadableStream
   private writer: NodeJS.WritableStream
   protected codec: msgpack.Codec
-  private attached = true
+  private attached = false
   private paused: [string, any[]][] = []
   private _paused = false
+  private logger: ILogger
 
   // Neovim client that holds state
   private client: any
@@ -80,15 +59,15 @@ class Transport extends EventEmitter {
     if (list.length) {
       this.paused = []
       return new Promise<void>((resolve, reject) => {
-        if (!isNotify) return this.request('nvim_call_atomic', [list], err => {
-          if (err) return reject(err)
-          resolve()
+        if (!isNotify) return this.request('nvim_call_atomic', [list], (err, res) => {
+          if (err) return reject(new Error(`call_atomic error: ${err[1]}`))
+          resolve(res)
         })
         this.notify('nvim_call_atomic', [list])
         resolve()
       })
     }
-    return Promise.resolve()
+    return isNotify ? null : Promise.resolve()
   }
 
   private setupCodec(): msgpack.Codec {
@@ -126,6 +105,8 @@ class Transport extends EventEmitter {
     this.writer = writer
     this.reader = reader
     this.client = client
+    this.logger = client.logger
+    this.attached = true
   }
 
   public detach(): void {
@@ -136,8 +117,9 @@ class Transport extends EventEmitter {
   }
 
   public request(method: string, args: any[], cb: Function): any {
-    if (!this.attached) return cb()
+    if (!this.attached) return cb([0, 'transport disconnected'])
     this.nextRequestId = this.nextRequestId + 1
+    this.debug('send request:', this.nextRequestId, method, args)
     this.encodeStream.write(
       msgpack.encode([0, this.nextRequestId, method, args], {
         codec: this.codec,
@@ -152,6 +134,7 @@ class Transport extends EventEmitter {
       this.paused.push([method, args])
       return
     }
+    this.debug('send notification:', method, args)
     this.encodeStream.write(
       msgpack.encode([2, method, args], {
         codec: this.codec,
@@ -159,8 +142,28 @@ class Transport extends EventEmitter {
     )
   }
 
+  private debug(key: string, ...meta: any[]): void {
+    if (!debug) return
+    this.logger.debug(key, meta)
+  }
+
+  private debugMessage(msg: any[]): void {
+    if (!debug) return
+    const msgType = msg[0]
+    if (msgType == 0) {
+      this.logger.debug('receive request:', msg.slice(1))
+    } else if (msgType == 1) {
+      this.logger.debug('receive response:', msg.slice(1))
+    } else if (msgType == 2) {
+      this.logger.debug('receive notification:', msg.slice(1))
+    } else {
+      this.logger.debug('unknown message:', msg)
+    }
+  }
+
   private parseMessage(msg: any[]): void {
     const msgType = msg[0]
+    this.debugMessage(msg)
 
     if (msgType === 0) {
       // request
@@ -171,7 +174,7 @@ class Transport extends EventEmitter {
         'request',
         msg[2].toString(),
         msg[3],
-        new Response(this.encodeStream, msg[1], () => this.attached)
+        this.createResponse(msg[1])
       )
     } else if (msgType === 1) {
       // response to a previous request:
@@ -182,7 +185,11 @@ class Transport extends EventEmitter {
       const handler = this.pending.get(id)
       if (handler) {
         this.pending.delete(id)
-        handler(msg[2], msg[3])
+        let err = msg[2]
+        if (err && err.length != 2) {
+          err = [0, err instanceof Error ? err.message : err]
+        }
+        handler(err, msg[3])
       }
     } else if (msgType === 2) {
       // notification/event
@@ -192,6 +199,25 @@ class Transport extends EventEmitter {
     } else {
       // tslint:disable-next-line: no-console
       console.error(`Invalid message type ${msgType}`)
+    }
+  }
+
+  private createResponse(requestId: number): Response {
+    let called = false
+    let { encodeStream } = this
+    return {
+      send: (resp: any, isError?: boolean): void => {
+        if (called || !this.attached) return
+        called = true
+        encodeStream.write(
+          msgpack.encode([
+            1,
+            requestId,
+            isError ? resp : null,
+            !isError ? resp : null,
+          ])
+        )
+      }
     }
   }
 }

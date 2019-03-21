@@ -5,7 +5,7 @@ import { Transport } from '../utils/transport'
 import { VimValue } from '../types/VimValue'
 import { Neovim } from './Neovim'
 import { Buffer } from './Buffer'
-import { createLogger, ILogger } from '../utils/logger'
+import { ILogger } from '../utils/logger'
 
 export const DETACH_BUFFER = Symbol('detachBuffer')
 export const ATTACH_BUFFER = Symbol('attachBuffer')
@@ -13,10 +13,13 @@ export const ATTACH_BUFFER = Symbol('attachBuffer')
 export type Callback = (err?: Error | null, res?: any) => void
 
 export class AsyncResponse {
+  private finished = false
   constructor(public readonly requestId: number, private cb: Callback) {
   }
 
   public finish(err?: string | null, res?: any): void {
+    if (this.finished) return
+    this.finished = true
     if (err) {
       this.cb(new Error(err))
       return
@@ -36,10 +39,10 @@ export class NeovimClient extends Neovim {
   private pauseLevel = 0
   private pauseTimer: NodeJS.Timer
 
-  constructor(options: { transport?: Transport; logger?: ILogger } = {}) {
+  constructor(options: { transport?: Transport; logger: ILogger }) {
     // Neovim has no `data` or `metadata`
     super({
-      logger: options.logger || createLogger('plugin'),
+      logger: options.logger
     })
     Object.defineProperty(this, 'client', {
       value: this
@@ -71,6 +74,12 @@ export class NeovimClient extends Neovim {
     this.transport.attach(writer, reader, this)
     this.transportAttached = true
     this.setupTransport()
+  }
+
+  /* called when attach process disconnected*/
+  public detach(): void {
+    this.transport.detach()
+    this.transportAttached = false
   }
 
   public get isApiReady(): boolean {
@@ -210,9 +219,9 @@ export class NeovimClient extends Neovim {
       this.transport.request(
         'nvim_get_api_info',
         [],
-        (err: Error, res: any[]) => {
+        (err: any, res: any[]) => {
           if (err) {
-            reject(err)
+            reject(new Error(Array.isArray(err) ? err[1] : err.message || err.toString()))
           } else {
             resolve(res)
           }
@@ -250,7 +259,6 @@ export class NeovimClient extends Neovim {
 
         return true
       } catch (err) {
-        this.logger.error(`Could not dynamically generate neovim API: ${err.message}`)
         this.logger.error(err.stack)
         return null
       }

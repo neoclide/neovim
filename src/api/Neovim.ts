@@ -431,9 +431,9 @@ export class Neovim extends BaseApi {
 
   /** Quit nvim */
   public async quit(): Promise<void> {
+    this.command('qa!', true)
     if (this.transport) {
       this.transport.detach()
     }
-    await this.command('qa!')
   }
 }
