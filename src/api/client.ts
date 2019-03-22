@@ -30,6 +30,7 @@ export class AsyncResponse {
 
 export class NeovimClient extends Neovim {
   protected requestQueue: any[]
+  private _isReady: Promise<boolean>
   private requestId = 1
   private transportAttached: boolean
   private responses: Map<number, AsyncResponse> = new Map()
@@ -70,10 +71,10 @@ export class NeovimClient extends Neovim {
   }: {
     reader: NodeJS.ReadableStream
     writer: NodeJS.WritableStream
-  }): void {
+  }, requestApi = true): void {
     this.transport.attach(writer, reader, this)
     this.transportAttached = true
-    this.setupTransport()
+    this.setupTransport(requestApi)
   }
 
   /* called when attach process disconnected*/
@@ -103,7 +104,6 @@ export class NeovimClient extends Neovim {
     resp: any,
     ...restArgs: any[]
   ): void {
-    this.logger.debug(`handleRequest: ${method}`)
     // If neovim API is not generated yet and we are not handle a 'specs' request
     // then queue up requests
     //
@@ -154,7 +154,7 @@ export class NeovimClient extends Neovim {
         }
         return
       }
-      // nvim_async_request_event
+      // async_request_event from vim
       if (method.startsWith('nvim_async_request')) {
         const [id, method, arr] = args
         this.handleRequest(method, arr, {
@@ -182,7 +182,6 @@ export class NeovimClient extends Neovim {
   }
 
   private handleNotification(method: string, args: VimValue[], ...restArgs: any[]): void {
-    this.logger.info(`handleNotification: ${method}`)
     // If neovim API is not generated yet then queue up requests
     //
     // Otherwise emit as normal
@@ -197,7 +196,7 @@ export class NeovimClient extends Neovim {
   }
 
   // Listen and setup handlers for transport
-  private setupTransport(): void {
+  private setupTransport(requestApi = true): void {
     if (!this.transportAttached) {
       throw new Error('Not attached to input/output')
     }
@@ -210,8 +209,12 @@ export class NeovimClient extends Neovim {
       this.transport.removeAllListeners('notification')
       this.transport.removeAllListeners('detach')
     })
-
-    this._isReady = this.generateApi()
+    if (requestApi) {
+      this._isReady = this.generateApi()
+    } else {
+      this._channelId = 0
+      this._isReady = Promise.resolve(true)
+    }
   }
 
   public requestApi(): Promise<any[]> {
@@ -310,7 +313,6 @@ export class NeovimClient extends Neovim {
   }
 
   public pauseNotification(): void {
-    if (!this.hasFunction('nvim_call_atomic')) return
     this.pauseLevel = this.pauseLevel + 1
     this.transport.pauseNotification()
     if (this.pauseTimer) clearTimeout(this.pauseTimer)
@@ -322,7 +324,6 @@ export class NeovimClient extends Neovim {
   }
 
   public resumeNotification(cancel?: boolean, notify?: boolean): Promise<void> {
-    if (!this.hasFunction('nvim_call_atomic')) return Promise.resolve()
     if (this.pauseLevel == 0) return Promise.resolve()
     this.pauseLevel = this.pauseLevel - 1
     if (cancel) return Promise.resolve()

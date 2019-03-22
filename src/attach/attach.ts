@@ -15,7 +15,7 @@ export function attach({
   writer: _writer,
   proc,
   socket,
-}: Attach, logger?: ILogger): NeovimClient {
+}: Attach, logger?: ILogger | null, requestApi = true): NeovimClient {
   let writer: NodeJS.WritableStream
   let reader: NodeJS.ReadableStream
   let neovim: NeovimClient
@@ -49,7 +49,7 @@ export function attach({
     neovim.attach({
       writer,
       reader,
-    })
+    }, requestApi)
     return neovim
   }
   throw new Error('Invalid arguments, could not attach')

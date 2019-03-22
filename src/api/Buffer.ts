@@ -25,7 +25,7 @@ type Chunk = [string, string]
 export class Buffer extends BaseApi {
   public prefix: string = Metadata[ExtType.Buffer].prefix
 
-  public get isAttached() {
+  public get isAttached(): boolean {
     return this.client.isAttached(this.id)
   }
 

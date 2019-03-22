@@ -27,7 +27,6 @@ const DO_REQUEST = Symbol('DO_REQUEST')
 // Only the Neovim API class should use EE though
 export class BaseApi extends EventEmitter {
   protected transport: Transport
-  protected _isReady: Promise<boolean>
   protected prefix: string
   public logger: ILogger
   public data: Buffer | Number // Node Buffer
@@ -76,7 +75,7 @@ export class BaseApi extends EventEmitter {
     // But this is just for Neovim API, since it's possible to call this method from Neovim class
     // before transport is ready.
     // Not possible for ExtType classes since they are only created after transport is ready
-    await this._isReady
+    // await this._isReady
     return this[DO_REQUEST](name, args)
   }
 
