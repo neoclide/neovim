@@ -1,14 +1,19 @@
 /**
  * Handles attaching transport
  */
-import { Transport } from '../utils/transport'
+import { NvimTransport } from '../transport/nvim'
+import { VimTransport } from '../transport/vim'
 import { VimValue } from '../types/VimValue'
 import { Neovim } from './Neovim'
 import { Buffer } from './Buffer'
-import { ILogger } from '../utils/logger'
+import { Window } from './Window'
+import { Tabpage } from './Tabpage'
+import { createLogger } from '../utils/logger'
 
 export const DETACH_BUFFER = Symbol('detachBuffer')
 export const ATTACH_BUFFER = Symbol('attachBuffer')
+const logger = createLogger('client')
+const isVim = process.env.VIM_NODE_RPC == '1'
 
 export type Callback = (err?: Error | null, res?: any) => void
 
@@ -29,7 +34,6 @@ export class AsyncResponse {
 }
 
 export class NeovimClient extends Neovim {
-  protected requestQueue: any[]
   private _isReady: Promise<boolean>
   private requestId = 1
   private transportAttached: boolean
@@ -40,17 +44,14 @@ export class NeovimClient extends Neovim {
   private pauseLevel = 0
   private pauseTimer: NodeJS.Timer
 
-  constructor(options: { transport?: Transport; logger: ILogger }) {
+  constructor() {
     // Neovim has no `data` or `metadata`
-    super({
-      logger: options.logger
-    })
+    super({})
     Object.defineProperty(this, 'client', {
       value: this
     })
-    const transport = options.transport || new Transport()
+    let transport = isVim ? new VimTransport() : new NvimTransport()
     this.setTransport(transport)
-    this.requestQueue = []
     this.transportAttached = false
     this.handleRequest = this.handleRequest.bind(this)
     this.handleNotification = this.handleNotification.bind(this)
@@ -58,6 +59,22 @@ export class NeovimClient extends Neovim {
 
   public createBuffer(id: number): Buffer {
     return new Buffer({
+      transport: this.transport,
+      data: id,
+      client: this
+    })
+  }
+
+  public createWindow(id: number): Window {
+    return new Window({
+      transport: this.transport,
+      data: id,
+      client: this
+    })
+  }
+
+  public createTabpage(id: number): Tabpage {
+    return new Tabpage({
       transport: this.transport,
       data: id,
       client: this
@@ -88,9 +105,8 @@ export class NeovimClient extends Neovim {
   }
 
   public get channelId(): Promise<number> {
-    return new Promise(async resolve => {
-      await this._isReady
-      resolve(this._channelId)
+    return this._isReady.then(() => {
+      return this._channelId
     })
   }
 
@@ -102,20 +118,8 @@ export class NeovimClient extends Neovim {
     method: string,
     args: VimValue[],
     resp: any,
-    ...restArgs: any[]
   ): void {
-    // If neovim API is not generated yet and we are not handle a 'specs' request
-    // then queue up requests
-    //
-    // Otherwise emit as normal
-    if (!this.isApiReady && method !== 'specs') {
-      this.requestQueue.push({
-        type: 'request',
-        args: [method, args, resp, ...restArgs],
-      })
-    } else {
-      this.emit('request', method, args, resp)
-    }
+    this.emit('request', method, args, resp)
   }
 
   public sendAsyncRequest(method: string, args: any[]): Promise<any> {
@@ -168,31 +172,23 @@ export class NeovimClient extends Neovim {
         const [id, err, res] = args
         const response = this.responses.get(id)
         if (!response) {
-          this.logger.error(`Response not found for request ${id}`)
+          // tslint:disable-next-line: no-console
+          console.error(`Response not found for request ${id}`)
           return
         }
         this.responses.delete(id)
         response.finish(err, res)
         return
       }
-      this.logger.error(`Unhandled event: ${method}`)
+      // tslint:disable-next-line: no-console
+      // console.error(`Unhandled event: ${method}`)
     } else {
       this.emit('notification', method, args)
     }
   }
 
-  private handleNotification(method: string, args: VimValue[], ...restArgs: any[]): void {
-    // If neovim API is not generated yet then queue up requests
-    //
-    // Otherwise emit as normal
-    if (!this.isApiReady) {
-      this.requestQueue.push({
-        type: 'notification',
-        args: [method, args, ...restArgs],
-      })
-    } else {
-      this.emitNotification(method, args)
-    }
+  private handleNotification(method: string, args: VimValue[]): void {
+    this.emitNotification(method, args)
   }
 
   // Listen and setup handlers for transport
@@ -233,14 +229,15 @@ export class NeovimClient extends Neovim {
     })
   }
 
-  public async generateApi(): Promise<null | boolean> {
+  private async generateApi(): Promise<null | boolean> {
     let results
 
     try {
       results = await this.requestApi()
     } catch (err) {
-      this.logger.error('Could not get vim api results')
-      this.logger.error(err)
+      // tslint:disable-next-line: no-console
+      console.error('Could not get vim api results')
+      logger.error(err)
     }
 
     if (results) {
@@ -248,21 +245,9 @@ export class NeovimClient extends Neovim {
         const [channelId, metadata] = results
         this.functions = metadata.functions.map(f => f.name)
         this._channelId = channelId
-
-        // register the non-queueing handlers
-        // dequeue any pending RPCs
-        this.requestQueue.forEach(pending => {
-          if (pending.type === 'notification') {
-            this.emitNotification(pending.args[0], pending.args[1])
-          } else {
-            this.emit(pending.type, ...pending.args)
-          }
-        })
-        this.requestQueue = []
-
         return true
       } catch (err) {
-        this.logger.error(err.stack)
+        logger.error(err.stack)
         return null
       }
     }
@@ -336,6 +321,7 @@ export class NeovimClient extends Neovim {
   }
 
   public hasFunction(name: string): boolean {
+    if (!this.functions) return true
     return this.functions.indexOf(name) !== -1
   }
 }

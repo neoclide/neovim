@@ -23,7 +23,7 @@ export interface BufferClearHighlight {
 type Chunk = [string, string]
 
 export class Buffer extends BaseApi {
-  public prefix: string = Metadata[ExtType.Buffer].prefix
+  public prefix = 'nvim_buf_'
 
   public get isAttached(): boolean {
     return this.client.isAttached(this.id)
@@ -40,7 +40,7 @@ export class Buffer extends BaseApi {
     if (this.isAttached) return true
     let res = false
     try {
-      res = await this.request(`${this.prefix}attach`, [this, sendBuffer, options])
+      res = await this.request(`${this.prefix}attach`, [sendBuffer, options])
     } catch (e) {
       res = false
     }
@@ -56,7 +56,7 @@ export class Buffer extends BaseApi {
   public async detach(): Promise<void> {
     this.client[DETACH_BUFFER](this)
     try {
-      await this.request(`${this.prefix}detach`, [this])
+      await this.request(`${this.prefix}detach`, [])
     } catch (e) {
       // noop
     }
@@ -71,7 +71,7 @@ export class Buffer extends BaseApi {
 
   /** Total number of lines in buffer */
   public get length(): Promise<number> {
-    return this.request(`${this.prefix}line_count`, [this])
+    return this.request(`${this.prefix}line_count`, [])
   }
 
   /** Get lines in buffer */
@@ -81,7 +81,7 @@ export class Buffer extends BaseApi {
 
   /** Gets a changed tick of a buffer */
   public get changedtick(): Promise<number> {
-    return this.request(`${this.prefix}get_changedtick`, [this])
+    return this.request(`${this.prefix}get_changedtick`, [])
   }
 
   public get commands(): Promise<Object> {
@@ -89,7 +89,7 @@ export class Buffer extends BaseApi {
   }
 
   public getCommands(options = {}): Promise<Object> {
-    return this.request(`${this.prefix}get_commands`, [this, options])
+    return this.request(`${this.prefix}get_commands`, [options])
   }
 
   /** Get specific lines of buffer */
@@ -99,7 +99,6 @@ export class Buffer extends BaseApi {
     const indexing =
       typeof strictIndexing === 'undefined' ? true : strictIndexing
     return this.request(`${this.prefix}get_lines`, [
-      this,
       start,
       end,
       indexing,
@@ -124,7 +123,6 @@ export class Buffer extends BaseApi {
     const method = notify ? 'notify' : 'request'
 
     return this[method](`${this.prefix}set_lines`, [
-      this,
       _start,
       end,
       indexing,
@@ -144,7 +142,6 @@ export class Buffer extends BaseApi {
    */
   public setVirtualText(src_id: number, line: number, chunks: Chunk[], opts: { [index: string]: any } = {}): Promise<number> {
     this.notify(`${this.prefix}set_virtual_text`, [
-      this,
       src_id,
       line,
       chunks,
@@ -188,22 +185,22 @@ export class Buffer extends BaseApi {
 
   /** Get buffer name */
   public get name(): Promise<string> {
-    return this.request(`${this.prefix}get_name`, [this])
+    return this.request(`${this.prefix}get_name`, [])
   }
 
   /** Set current buffer name */
   public setName(value: string): Promise<void> {
-    return this.request(`${this.prefix}set_name`, [this, value])
+    return this.request(`${this.prefix}set_name`, [value])
   }
 
   /** Is current buffer valid */
   public get valid(): Promise<boolean> {
-    return this.request(`${this.prefix}is_valid`, [this])
+    return this.request(`${this.prefix}is_valid`, [])
   }
 
   /** Get mark position given mark name */
   public mark(name: string): Promise<[number, number]> {
-    return this.request(`${this.prefix}get_mark`, [this, name])
+    return this.request(`${this.prefix}get_mark`, [name])
   }
 
   // range(start, end) {
@@ -213,7 +210,7 @@ export class Buffer extends BaseApi {
 
   /** Gets keymap */
   public getKeymap(mode: string): Promise<object[]> {
-    return this.request(`${this.prefix}get_keymap`, [this, mode])
+    return this.request(`${this.prefix}get_keymap`, [mode])
   }
 
   /**
@@ -221,7 +218,7 @@ export class Buffer extends BaseApi {
  * more info about unloaded buffers.
  */
   public get loaded(): Promise<boolean> {
-    return this.request(`${this.prefix}is_loaded`, [this])
+    return this.request(`${this.prefix}is_loaded`, [])
   }
 
   /**
@@ -239,7 +236,7 @@ export class Buffer extends BaseApi {
    * @return {Number} Integer byte offset, or -1 for unloaded buffer.
    */
   public getOffset(index: number): Promise<number> {
-    return this.request(`${this.prefix}get_offset`, [this, index])
+    return this.request(`${this.prefix}get_offset`, [index])
   }
 
   /**
@@ -278,7 +275,6 @@ export class Buffer extends BaseApi {
     const srcId = typeof _srcId !== 'undefined' ? _srcId : -1
     const method = hlGroup === '' ? 'request' : 'notify'
     let res = this[method](`${this.prefix}add_highlight`, [
-      this,
       srcId,
       hlGroup,
       line,
@@ -302,7 +298,6 @@ export class Buffer extends BaseApi {
     const { srcId, lineStart, lineEnd } = Object.assign({}, defaults, args)
 
     return this.notify(`${this.prefix}clear_highlight`, [
-      this,
       srcId,
       lineStart,
       lineEnd,
@@ -311,7 +306,6 @@ export class Buffer extends BaseApi {
 
   clearNamespace(id: number, lineStart = 0, lineEnd = -1) {
     return this.notify(`${this.prefix}clear_namespace`, [
-      this,
       id,
       lineStart,
       lineEnd,
