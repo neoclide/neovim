@@ -8,37 +8,24 @@ export interface Response {
   send: (resp: any, isError?: boolean) => void
 }
 
-function toObject(arg: any): any {
-  if (arg == null) {
-    return arg
-  }
-  if (Array.isArray(arg)) {
-    return arg.map(o => toObject(o))
-  }
-  if (typeof arg == 'object' && typeof arg.prefix == 'string' && typeof arg.data == 'number') {
-    return '[' + arg.prefix + arg.data + ']'
-  }
-  return arg
-}
-
 export default abstract class Transport extends EventEmitter {
   protected _paused = false
   protected paused: [string, any[]][] = []
 
   protected debug(key: string, ...meta: any[]): void {
     if (!debug) return
-    logger.debug(key, ...meta.map(o => toObject(o)))
+    logger.debug(key, ...meta)
   }
 
   protected debugMessage(msg: any[]): void {
     if (!debug) return
     const msgType = msg[0]
     if (msgType == 0) {
-      logger.debug('receive request:', toObject(msg.slice(1)))
+      logger.debug('receive request:', msg.slice(1))
     } else if (msgType == 1) {
-      logger.debug('receive response:', toObject(msg.slice(1)))
+      logger.debug('receive response:', msg.slice(1))
     } else if (msgType == 2) {
-      logger.debug('receive notification:', toObject(msg.slice(1)))
+      logger.debug('receive notification:', msg.slice(1))
     } else {
       logger.debug('unknown message:', msg)
     }

@@ -31,7 +31,7 @@ export default class Connection extends Emitter {
     }
     // request, notification, response
     let [id, obj] = arr
-    if (debug) logger.debug('received', id, obj)
+    if (debug) logger.debug('received:', id, obj)
     if (arr.length > 2) {
       logger.error('Result array length > 2', arr)
     }

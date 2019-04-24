@@ -34,7 +34,6 @@
   ],
   "main": "./lib/index",
   "dependencies": {
-    "log4js": "^4.1.0",
     "msgpack-lite": "^0.1.26"
   },
   "devDependencies": {
