@@ -136,7 +136,7 @@ export class NvimTransport extends Transport {
       this.paused.push([method, args])
       return
     }
-    // this.debug('nvim notification:', method, args)
+    this.debug('nvim notification:', method, args)
     this.encodeStream.write(
       msgpack.encode([2, method, args], {
         codec: this.codec,
@@ -150,6 +150,7 @@ export class NvimTransport extends Transport {
     return {
       send: (resp: any, isError?: boolean): void => {
         if (called || !this.attached) return
+        this.debug('response:', requestId, resp, isError == true)
         called = true
         encodeStream.write(
           msgpack.encode([

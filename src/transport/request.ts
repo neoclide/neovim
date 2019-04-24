@@ -17,7 +17,8 @@ export default class Request {
   public request(method: string, args: any[] = []): void {
     this.method = method
     this.args = args
-    this.connection.call('nvim#api#call', [method.slice(5), args], this.id)
+    let m = process.env.COC_NVIM == '1' ? 'coc#api#call' : 'nvim#api#call'
+    this.connection.call(m, [method.slice(5), args], this.id)
   }
 
   public callback(client: NeovimClient, err: any, result: any): void {

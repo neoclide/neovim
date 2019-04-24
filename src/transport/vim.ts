@@ -95,7 +95,8 @@ export class VimTransport extends Transport {
         this.connection.commmand(args[0])
       }
     } else {
-      this.connection.call('nvim#api#notify', [method.slice(5), args])
+      let m = process.env.COC_NVIM == '1' ? 'coc#api#notify' : 'nvim#api#notify'
+      this.connection.call(m, [method.slice(5), args])
     }
   }
 
