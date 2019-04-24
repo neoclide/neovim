@@ -1,7 +1,7 @@
 {
   "name": "@chemzqm/neovim",
   "description": "Neovim client API and neovim remote plugin provider",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "homepage": "https://github.com/chemzqm/node-client",
   "authors": [
     {
