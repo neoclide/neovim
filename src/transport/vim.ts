@@ -84,20 +84,8 @@ export class VimTransport extends Transport {
       this.paused.push([method, args])
       return
     }
-    if (method == 'nvim_call_function') {
-      this.connection.call(args[0], args[1])
-    } else if (method == 'nvim_eval') {
-      this.connection.expr(args[0])
-    } else if (method == 'nvim_command') {
-      if (args[0] == 'redraw' || args[0] == 'redraw!') {
-        this.connection.redraw(args[0].endsWith('!'))
-      } else {
-        this.connection.commmand(args[0])
-      }
-    } else {
-      let m = process.env.COC_NVIM == '1' ? 'coc#api#notify' : 'nvim#api#notify'
-      this.connection.call(m, [method.slice(5), args])
-    }
+    let m = process.env.COC_NVIM == '1' ? 'coc#api#notify' : 'nvim#api#notify'
+    this.connection.call(m, [method.slice(5), args])
   }
 
   protected createResponse(requestId: number): Response {
