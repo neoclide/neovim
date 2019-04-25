@@ -359,22 +359,22 @@ export class Neovim extends BaseApi {
   }
 
   /** Write to output buffer */
-  public outWrite(str: string): Promise<any> {
-    return this.request(`${this.prefix}out_write`, [str])
+  public outWrite(str: string): void {
+    this.notify(`${this.prefix}out_write`, [str])
   }
 
-  public outWriteLine(str: string): Promise<any> {
-    return this.outWrite(`${str}\n`)
-  }
-
-  /** Write to error buffer */
-  public errWrite(str: string): Promise<any> {
-    return this.request(`${this.prefix}err_write`, [str])
+  public outWriteLine(str: string): void {
+    this.outWrite(`${str}\n`)
   }
 
   /** Write to error buffer */
-  public errWriteLine(str: string): Promise<any> {
-    return this.request(`${this.prefix}err_writeln`, [str])
+  public errWrite(str: string): void {
+    this.notify(`${this.prefix}err_write`, [str])
+  }
+
+  /** Write to error buffer */
+  public errWriteLine(str: string): void {
+    this.notify(`${this.prefix}err_writeln`, [str])
   }
 
   // TODO: add type
