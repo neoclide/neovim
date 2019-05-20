@@ -37,6 +37,7 @@ export default class Request {
         return cb(null, client.createWindow(result))
       case 'nvim_list_bufs':
         return cb(null, result.map(o => client.createBuffer(o)))
+      case 'nvim_win_get_buf':
       case 'nvim_create_buf':
       case 'nvim_get_current_buf':
         return cb(null, client.createBuffer(result))
