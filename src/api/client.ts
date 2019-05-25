@@ -308,7 +308,7 @@ export class NeovimClient extends Neovim {
     }, 50)
   }
 
-  public resumeNotification(cancel?: boolean, notify?: boolean): Promise<void> {
+  public resumeNotification(cancel?: boolean, notify?: boolean): Promise<any> {
     if (this.pauseLevel == 0) return Promise.resolve()
     this.pauseLevel = this.pauseLevel - 1
     if (cancel) return Promise.resolve()

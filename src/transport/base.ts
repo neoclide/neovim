@@ -37,7 +37,7 @@ export default abstract class Transport extends EventEmitter {
 
   public resumeNotification(): Promise<void>
   public resumeNotification(isNotify: true): null
-  public resumeNotification(isNotify = false): Promise<void> | null {
+  public resumeNotification(isNotify = false): Promise<any> | null {
     this._paused = false
     let list = this.paused
     if (list.length) {

@@ -12,7 +12,8 @@ export interface ILogger {
 const LOG_FILE_PATH = process.env.NODE_CLIENT_LOG_FILE || path.join(os.tmpdir(), 'node-client.log')
 const level = process.env.NODE_CLIENT_LOG_LEVEL || 'info'
 
-if (level === 'debug') {
+const isRoot = process.getuid && process.getuid() == 0
+if (level === 'debug' && !isRoot) {
   fs.writeFileSync(LOG_FILE_PATH, '', 'utf8')
 }
 
@@ -51,20 +52,22 @@ class Logger implements ILogger {
   }
 
   public debug(data: string, ...meta: any[]): void {
-    if (level != 'debug') return
+    if (level != 'debug' || isRoot) return
     stream.write(this.getText('debug', data, meta))
   }
 
   public info(data: string, ...meta: any[]): void {
+    if (isRoot) return
     stream.write(this.getText('info', data, meta))
   }
 
   public error(data: string, ...meta: any[]): void {
+    if (isRoot) return
     stream.write(this.getText('error', data, meta))
   }
 
   public trace(data: string, ...meta: any[]): void {
-    if (level != 'debug') return
+    if (level != 'debug' || isRoot) return
     stream.write(this.getText('trace', data, meta))
   }
 }
