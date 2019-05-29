@@ -14,7 +14,7 @@ export default class Connection extends Emitter {
       this.parseData(line)
     })
     rl.on('close', () => {
-      logger.error('stdin get closed')
+      logger.error('connection closed')
       process.exit(0)
     })
   }
@@ -31,10 +31,7 @@ export default class Connection extends Emitter {
     }
     // request, notification, response
     let [id, obj] = arr
-    if (debug) logger.debug('received:', id, obj)
-    if (arr.length > 2) {
-      logger.error('Result array length > 2', arr)
-    }
+    logger.debug('received:', arr)
     if (id > 0) {
       this.emit('request', id, obj)
     } else if (id == 0) {

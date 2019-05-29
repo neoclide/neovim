@@ -3,6 +3,7 @@ import { NeovimClient } from '../api'
 import { createLogger } from '../utils/logger'
 const logger = createLogger('request')
 const debug = process.env.NODE_CLIENT_LOG_LEVEL == 'debug'
+const func = process.env.COC_NVIM == '1' ? 'coc#api#call' : 'nvim#api#call'
 
 export default class Request {
   private method: string
@@ -17,8 +18,7 @@ export default class Request {
   public request(method: string, args: any[] = []): void {
     this.method = method
     this.args = args
-    let m = process.env.COC_NVIM == '1' ? 'coc#api#call' : 'nvim#api#call'
-    this.connection.call(m, [method.slice(5), args], this.id)
+    this.connection.call(func, [method.slice(5), args], this.id)
   }
 
   public callback(client: NeovimClient, err: any, result: any): void {

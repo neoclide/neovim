@@ -9,9 +9,11 @@ export class VimTransport extends Transport {
   private connection: Connection
   private attached = false
   private client: NeovimClient
+  private notifyMethod: string
 
   constructor() {
     super()
+    this.notifyMethod = process.env.COC_NVIM == '1' ? 'coc#api#notify' : 'nvim#api#notify'
   }
 
   public attach(
@@ -84,8 +86,7 @@ export class VimTransport extends Transport {
       this.paused.push([method, args])
       return
     }
-    let m = process.env.COC_NVIM == '1' ? 'coc#api#notify' : 'nvim#api#notify'
-    this.connection.call(m, [method.slice(5), args])
+    this.connection.call(this.notifyMethod, [method.slice(5), args])
   }
 
   protected createResponse(requestId: number): Response {
