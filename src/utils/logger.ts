@@ -9,13 +9,19 @@ export interface ILogger {
   trace: (data: string, ...meta: any[]) => void
 }
 
-const LOG_FILE_PATH = process.env.NODE_CLIENT_LOG_FILE || path.join(os.tmpdir(), 'node-client.log')
+function getLogFile(): string {
+  let file = process.env.NODE_CLIENT_LOG_FILE
+  if (file) return file
+  let dir = process.env.XDG_RUNTIME_DIR
+  if (dir) return path.join(dir, 'node-client.log')
+  return path.join(os.tmpdir(), `node-client-${process.pid}.log`)
+}
+
+const LOG_FILE_PATH = getLogFile()
 const level = process.env.NODE_CLIENT_LOG_LEVEL || 'info'
 
 const isRoot = process.getuid && process.getuid() == 0
-if (level === 'debug' && !isRoot) {
-  fs.writeFileSync(LOG_FILE_PATH, '', 'utf8')
-}
+if (!isRoot) fs.writeFileSync(LOG_FILE_PATH, '', { encoding: 'utf8', mode: 0o666 })
 
 function toObject(arg: any): any {
   if (arg == null) {
@@ -36,7 +42,7 @@ function toString(arg: any): string {
   return String(arg)
 }
 
-let stream = fs.createWriteStream(LOG_FILE_PATH, { encoding: 'utf8' })
+const stream = isRoot ? null : fs.createWriteStream(LOG_FILE_PATH, { encoding: 'utf8' })
 
 class Logger implements ILogger {
   constructor(private name: string) {
@@ -52,22 +58,22 @@ class Logger implements ILogger {
   }
 
   public debug(data: string, ...meta: any[]): void {
-    if (level != 'debug' || isRoot) return
+    if (level != 'debug' || stream == null) return
     stream.write(this.getText('debug', data, meta))
   }
 
   public info(data: string, ...meta: any[]): void {
-    if (isRoot) return
+    if (stream == null) return
     stream.write(this.getText('info', data, meta))
   }
 
   public error(data: string, ...meta: any[]): void {
-    if (isRoot) return
+    if (stream == null) return
     stream.write(this.getText('error', data, meta))
   }
 
   public trace(data: string, ...meta: any[]): void {
-    if (level != 'debug' || isRoot) return
+    if (level != 'trace' || stream == null) return
     stream.write(this.getText('trace', data, meta))
   }
 }
