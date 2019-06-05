@@ -20,8 +20,15 @@ function getLogFile(): string {
 const LOG_FILE_PATH = getLogFile()
 const level = process.env.NODE_CLIENT_LOG_LEVEL || 'info'
 
-const isRoot = process.getuid && process.getuid() == 0
-if (!isRoot) fs.writeFileSync(LOG_FILE_PATH, '', { encoding: 'utf8', mode: 0o666 })
+let invalid = process.getuid && process.getuid() == 0
+if (!invalid) {
+  try {
+    fs.mkdirSync(path.dirname(LOG_FILE_PATH), { recursive: true })
+    fs.writeFileSync(LOG_FILE_PATH, '', { encoding: 'utf8', mode: 0o666 })
+  } catch (_e) {
+    invalid = true
+  }
+}
 
 function toObject(arg: any): any {
   if (arg == null) {
@@ -42,7 +49,7 @@ function toString(arg: any): string {
   return String(arg)
 }
 
-const stream = isRoot ? null : fs.createWriteStream(LOG_FILE_PATH, { encoding: 'utf8' })
+const stream = invalid ? null : fs.createWriteStream(LOG_FILE_PATH, { encoding: 'utf8' })
 
 class Logger implements ILogger {
   constructor(private name: string) {
