@@ -28,7 +28,7 @@ function! s:on_exit(job, status)
 endfunction
 
 " use for test purpose.
-function! nvim#rpc#start_server() abort
+function! nvim#rpc#start_server(file) abort
   if !empty(s:channel)
     let state = ch_status(s:channel)
     if state ==# 'open' || state ==# 'buffered'
@@ -36,7 +36,7 @@ function! nvim#rpc#start_server() abort
       return 1
     endif
   endif
-  let command =  ['node', s:root . '/bin/server.js']
+  let command =  ['node', a:file]
   let options = {
         \ 'in_mode': 'json',
         \ 'out_mode': 'json',

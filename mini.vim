@@ -1,9 +1,10 @@
 set nocompatible
 
 let s:root = expand('<sfile>:h')
-"let g:nvim_node_rpc_debug = 1
+let g:node_client_debug = 1
 execute 'set rtp+='.fnameescape(s:root)
-call nvim#rpc#start_server()
+let file = s:root.'/bin/server.js'
+call nvim#rpc#start_server(file)
 
 command! -nargs=? Openlog :call nvim#rpc#open_log()
 

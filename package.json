@@ -1,6 +1,6 @@
 {
   "name": "@chemzqm/neovim",
-  "description": "Neovim client API and neovim remote plugin provider",
+  "description": "NodeJS client API for vim8 and neovim",
   "version": "5.1.7",
   "homepage": "https://github.com/chemzqm/node-client",
   "authors": [
