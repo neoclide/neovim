@@ -2,6 +2,7 @@ import { BaseApi } from './Base'
 import { Buffer } from './Buffer'
 import { Tabpage } from './Tabpage'
 import { FloatOptions } from './types'
+import { clearInterval } from 'timers'
 
 export class Window extends BaseApi {
   public prefix = 'nvim_win_'
@@ -102,7 +103,27 @@ export class Window extends BaseApi {
     return this.request(`${this.prefix}get_config`, [])
   }
 
-  public close(force = true): Promise<void> {
+  public close(force: boolean): Promise<void>
+  public close(force: boolean, isNotify: true): null
+  public close(force: boolean, isNotify?: boolean): Promise<void> {
+    if (isNotify) {
+      this.notify(`${this.prefix}close`, [force])
+      let count = 0
+      let interval = setInterval(() => {
+        if (count == 5) return clearInterval(interval)
+        this.request(`${this.prefix}is_valid`, []).then(valid => {
+          if (!valid) {
+            clearInterval(interval)
+          } else {
+            this.notify(`${this.prefix}close`, [force])
+          }
+        }, () => {
+          clearInterval(interval)
+        })
+        count++
+      }, 50)
+      return null
+    }
     return this.request(`${this.prefix}close`, [force])
   }
 }
