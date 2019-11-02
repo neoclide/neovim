@@ -43,11 +43,11 @@ export default abstract class Transport extends EventEmitter {
     if (list.length) {
       this.paused = []
       return new Promise<void>((resolve, reject) => {
-        if (!isNotify) return this.request('nvim_call_atomic', [list], (err, res) => {
+        if (!isNotify) return this.request('nvim_call_atomic', list, (err, res) => {
           if (err) return reject(new Error(`call_atomic error: ${err[1]}`))
           resolve(res)
         })
-        this.notify('nvim_call_atomic', [list])
+        this.notify('nvim_call_atomic', list)
         resolve()
       })
     }
