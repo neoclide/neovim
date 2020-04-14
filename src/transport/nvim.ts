@@ -164,7 +164,7 @@ export class NvimTransport extends Transport {
       send: (resp: any, isError?: boolean): void => {
         clearTimeout(timer)
         if (called || !this.attached) return
-        this.debug('response:', requestId, `${Date.now() - startTs}ms`, resp, isError == true)
+        this.debug('response of client:', requestId, `${Date.now() - startTs}ms`, resp, isError == true)
         called = true
         encodeStream.write(
           msgpack.encode([

@@ -27,7 +27,7 @@ export default abstract class Transport extends EventEmitter {
     if (msgType == 0) {
       logger.debug('receive request:', msg.slice(1))
     } else if (msgType == 1) {
-      logger.debug('receive response:', msg.slice(1))
+      // logger.debug('receive response:', msg.slice(1))
     } else if (msgType == 2) {
       logger.debug('receive notification:', msg.slice(1))
     } else {

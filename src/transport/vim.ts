@@ -109,7 +109,7 @@ export class VimTransport extends Transport {
         called = true
         let err: string = null
         if (isError) err = typeof resp === 'string' ? resp : resp.toString()
-        this.debug('response:', requestId, `${Date.now() - startTs}ms`, resp, isError == true)
+        this.debug('response of client:', requestId, `${Date.now() - startTs}ms`, resp, isError == true)
         connection.response(requestId, [err, isError ? null : resp])
       }
     }
