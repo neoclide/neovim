@@ -17,6 +17,10 @@ export default abstract class Transport extends EventEmitter {
     logger.debug(key, ...meta)
   }
 
+  protected info(key: string, ...meta: any[]): void {
+    logger.info(key, ...meta)
+  }
+
   protected debugMessage(msg: any[]): void {
     if (!debug) return
     const msgType = msg[0]

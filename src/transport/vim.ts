@@ -5,7 +5,7 @@ import Request from './request'
 
 export class VimTransport extends Transport {
   private pending: Map<number, Request> = new Map()
-  private nextRequestId = 0
+  private nextRequestId = -1
   private connection: Connection
   private attached = false
   private client: NeovimClient
@@ -66,13 +66,19 @@ export class VimTransport extends Transport {
    */
   public request(method: string, args: any[], cb: Function): any {
     if (!this.attached) return cb([0, 'transport disconnected'])
-    if (!this.client.hasFunction(method)) {
-      // tslint:disable-next-line: no-console
-      console.error(`method: ${method} not supported.`)
-    }
+    let id = this.nextRequestId
     this.nextRequestId = this.nextRequestId - 1
-    let req = new Request(this.connection, cb, this.nextRequestId)
-    this.pending.set(this.nextRequestId, req)
+    let startTs = Date.now()
+    this.debug('request to vim:', id, method, args)
+    let timer = setTimeout(() => {
+      this.debug(`request to vim cost more than 1s`, method, args)
+    }, 1000)
+    let req = new Request(this.connection, (err, res) => {
+      clearTimeout(timer)
+      this.debug('response of vim:', id, `${Date.now() - startTs}ms`, res, err)
+      cb(err, res)
+    }, id)
+    this.pending.set(id, req)
     req.request(method, args)
   }
 
@@ -92,12 +98,18 @@ export class VimTransport extends Transport {
   protected createResponse(requestId: number): Response {
     let called = false
     let { connection } = this
+    let startTs = Date.now()
+    let timer = setTimeout(() => {
+      this.debug(`request to client cost more than 1s`, requestId)
+    }, 1000)
     return {
       send: (resp: any, isError?: boolean): void => {
+        clearTimeout(timer)
         if (called || !this.attached) return
         called = true
         let err: string = null
         if (isError) err = typeof resp === 'string' ? resp : resp.toString()
+        this.debug('response:', requestId, `${Date.now() - startTs}ms`, resp, isError == true)
         connection.response(requestId, [err, isError ? null : resp])
       }
     }

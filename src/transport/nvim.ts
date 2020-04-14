@@ -120,14 +120,23 @@ export class NvimTransport extends Transport {
 
   public request(method: string, args: any[], cb: Function): any {
     if (!this.attached) return cb([0, 'transport disconnected'])
+    let id = this.nextRequestId
     this.nextRequestId = this.nextRequestId + 1
-    this.debug('nvim request:', this.nextRequestId, method, args)
+    let startTs = Date.now()
+    this.debug('request to nvim:', id, method, args)
     this.encodeStream.write(
-      msgpack.encode([0, this.nextRequestId, method, args], {
+      msgpack.encode([0, id, method, args], {
         codec: this.codec,
       })
     )
-    this.pending.set(this.nextRequestId, cb)
+    let timer = setTimeout(() => {
+      this.debug(`request to nvim cost more than 1s`, method, args)
+    }, 1000)
+    this.pending.set(id, (err, res) => {
+      clearTimeout(timer)
+      this.debug('response of nvim:', id, `${Date.now() - startTs}ms`, res, err)
+      cb(err, res)
+    })
   }
 
   public notify(method: string, args: any[]): void {
@@ -145,12 +154,17 @@ export class NvimTransport extends Transport {
   }
 
   protected createResponse(requestId: number): Response {
-    let called = false
     let { encodeStream } = this
+    let startTs = Date.now()
+    let called = false
+    let timer = setTimeout(() => {
+      this.debug(`request to client cost more than 1s`, requestId)
+    }, 1000)
     return {
       send: (resp: any, isError?: boolean): void => {
+        clearTimeout(timer)
         if (called || !this.attached) return
-        this.debug('response:', requestId, resp, isError == true)
+        this.debug('response:', requestId, `${Date.now() - startTs}ms`, resp, isError == true)
         called = true
         encodeStream.write(
           msgpack.encode([
