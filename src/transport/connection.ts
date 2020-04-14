@@ -51,7 +51,6 @@ export default class Connection extends Emitter {
   }
 
   public send(arr: any[]): void {
-    if (debug) logger.debug('send:', arr[0], arr.slice(1))
     try {
       this.writeable.write(JSON.stringify(arr) + '\n')
     } catch (e) {
