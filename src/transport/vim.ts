@@ -84,13 +84,12 @@ export class VimTransport extends Transport {
 
   public notify(method: string, args: any[]): void {
     if (!this.attached) return
-    if (!this.client.hasFunction(method)) {
-      // tslint:disable-next-line: no-console
-      console.error(`method: ${method} not supported.`)
-    }
-    if (this._paused) {
-      this.paused.push([method, args])
-      return
+    if (this.pauseLevel != 0) {
+      let arr = this.paused.get(this.pauseLevel)
+      if (arr) {
+        arr.push([method, args])
+        return
+      }
     }
     this.connection.call(this.notifyMethod, [method.slice(5), args])
   }

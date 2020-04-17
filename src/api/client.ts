@@ -41,8 +41,6 @@ export class NeovimClient extends Neovim {
   private _channelId: number
   private attachedBuffers: Map<number, Map<string, Function[]>> = new Map()
   private functions: string[]
-  private pauseLevel = 0
-  private pauseTimer: NodeJS.Timer
 
   constructor() {
     // Neovim has no `data` or `metadata`
@@ -298,26 +296,23 @@ export class NeovimClient extends Neovim {
   }
 
   public pauseNotification(): void {
-    this.pauseLevel = this.pauseLevel + 1
     this.transport.pauseNotification()
-    if (this.pauseTimer) clearTimeout(this.pauseTimer)
-    this.pauseTimer = setTimeout(() => {
-      this.pauseLevel = 0
-      // tslint:disable-next-line: no-floating-promises
-      this.transport.resumeNotification()
-    }, 50)
+    let pauseLevel = this.transport.pauseLevel
+    let stack = Error().stack
+    setTimeout(() => {
+      if (this.transport.pauseLevel >= pauseLevel) {
+        this.transport.cancelNotification()
+        logger.error(`pauseNotification not finished after 1s`, stack)
+      }
+    }, 2000)
   }
 
   public resumeNotification(cancel?: boolean, notify?: boolean): Promise<any> {
-    if (this.pauseLevel == 0) return Promise.resolve()
-    this.pauseLevel = this.pauseLevel - 1
-    if (cancel) return Promise.resolve()
-    if (this.pauseLevel == 0) {
-      if (this.pauseTimer) clearTimeout(this.pauseTimer)
-      if (!notify) return this.transport.resumeNotification()
-      this.transport.resumeNotification(true)
+    if (cancel) return Promise.resolve(this.transport.cancelNotification())
+    if (notify) {
+      return Promise.resolve(this.transport.resumeNotification(true))
     }
-    return Promise.resolve()
+    return Promise.resolve(this.transport.resumeNotification())
   }
 
   public hasFunction(name: string): boolean {

@@ -9,8 +9,8 @@ export interface Response {
 }
 
 export default abstract class Transport extends EventEmitter {
-  protected _paused = false
-  protected paused: [string, any[]][] = []
+  public pauseLevel = 0
+  protected paused: Map<number, [string, any[]][]> = new Map()
 
   protected debug(key: string, ...meta: any[]): void {
     if (!debug) return
@@ -36,16 +36,27 @@ export default abstract class Transport extends EventEmitter {
   }
 
   public pauseNotification(): void {
-    this._paused = true
+    this.pauseLevel = this.pauseLevel + 1
+    this.paused.set(this.pauseLevel, [])
+  }
+
+  public cancelNotification(): void {
+    let { pauseLevel } = this
+    if (pauseLevel > 0) {
+      this.paused.delete(pauseLevel)
+      this.pauseLevel = pauseLevel - 1
+    }
   }
 
   public resumeNotification(): Promise<void>
   public resumeNotification(isNotify: true): null
   public resumeNotification(isNotify = false): Promise<any> | null {
-    this._paused = false
-    let list = this.paused
-    if (list.length) {
-      this.paused = []
+    let { pauseLevel } = this
+    if (pauseLevel == 0) return isNotify ? null : Promise.resolve([null, null])
+    this.pauseLevel = pauseLevel - 1
+    let list = this.paused.get(pauseLevel)
+    this.paused.delete(pauseLevel)
+    if (list && list.length) {
       return new Promise<void>((resolve, reject) => {
         if (!isNotify) {
           return this.request('nvim_call_atomic', [list], (err, res) => {
@@ -69,5 +80,4 @@ export default abstract class Transport extends EventEmitter {
   public abstract notify(method: string, args: any[]): void
 
   protected abstract createResponse(requestId: number): Response
-
 }

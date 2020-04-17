@@ -141,9 +141,12 @@ export class NvimTransport extends Transport {
 
   public notify(method: string, args: any[]): void {
     if (!this.attached) return
-    if (this._paused) {
-      this.paused.push([method, args])
-      return
+    if (this.pauseLevel != 0) {
+      let arr = this.paused.get(this.pauseLevel)
+      if (arr) {
+        arr.push([method, args])
+        return
+      }
     }
     this.debug('nvim notification:', method, args)
     this.encodeStream.write(
