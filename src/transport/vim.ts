@@ -75,7 +75,7 @@ export class VimTransport extends Transport {
     }, 1000)
     let req = new Request(this.connection, (err, res) => {
       clearTimeout(timer)
-      this.debug('response of vim:', id, `${Date.now() - startTs}ms`, res, err)
+      this.debug(`response from vim cost:`, id, `${Date.now() - startTs}ms`)
       cb(err, res)
     }, id)
     this.pending.set(id, req)
@@ -108,7 +108,7 @@ export class VimTransport extends Transport {
         called = true
         let err: string = null
         if (isError) err = typeof resp === 'string' ? resp : resp.toString()
-        this.debug('response of client:', requestId, `${Date.now() - startTs}ms`, resp, isError == true)
+        this.debug('response of client cost:', requestId, `${Date.now() - startTs}ms`)
         connection.response(requestId, [err, isError ? null : resp])
       }
     }

@@ -31,12 +31,14 @@ export default class Connection extends Emitter {
     }
     // request, notification, response
     let [id, obj] = arr
-    logger.debug('received:', arr)
     if (id > 0) {
+      logger.debug('received request:', id, obj)
       this.emit('request', id, obj)
     } else if (id == 0) {
+      logger.debug('received notification:', obj)
       this.emit('notification', obj)
     } else {
+      logger.debug('received response:', id, obj)
       // response for previous request
       this.emit('response', id, obj)
     }
@@ -51,6 +53,7 @@ export default class Connection extends Emitter {
   }
 
   public send(arr: any[]): void {
+    logger.debug('send to vim:', arr)
     try {
       this.writeable.write(JSON.stringify(arr) + '\n')
     } catch (e) {
