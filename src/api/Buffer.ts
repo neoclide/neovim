@@ -1,6 +1,5 @@
 import { BaseApi } from './Base'
 import { ExtType, Metadata } from './types'
-import { ATTACH_BUFFER, DETACH_BUFFER } from './client'
 
 export interface BufferSetLines {
   start?: number
@@ -20,14 +19,17 @@ export interface BufferClearHighlight {
   lineEnd?: number
 }
 
+export interface Disposable {
+  /**
+   * Dispose this object.
+   */
+  dispose(): void;
+}
+
 type Chunk = [string, string]
 
 export class Buffer extends BaseApi {
   public prefix = 'nvim_buf_'
-
-  public get isAttached(): boolean {
-    return this.client.isAttached(this.id)
-  }
 
   /**
    * Attach to buffer to listen to buffer events
@@ -37,29 +39,14 @@ export class Buffer extends BaseApi {
    *        a `nvim_buf_changedtick_event`
    */
   public async attach(sendBuffer = false, options: {} = {}): Promise<boolean> {
-    if (this.isAttached) return true
-    let res = false
-    try {
-      res = await this.request(`${this.prefix}attach`, [sendBuffer, options])
-    } catch (e) {
-      res = false
-    }
-    if (res) {
-      this.client[ATTACH_BUFFER](this)
-    }
-    return this.isAttached
+    return await this.request(`${this.prefix}attach`, [sendBuffer, options])
   }
 
   /**
    * Detach from buffer to stop listening to buffer events
    */
-  public async detach(): Promise<void> {
-    this.client[DETACH_BUFFER](this)
-    try {
-      await this.request(`${this.prefix}detach`, [])
-    } catch (e) {
-      // noop
-    }
+  public async detach(): Promise<boolean> {
+    return await this.request(`${this.prefix}detach`, [])
   }
 
   /**
@@ -315,17 +302,14 @@ export class Buffer extends BaseApi {
   /**
    * Listens to buffer for events
    */
-  public listen(eventName: string, cb: Function): Function {
-    if (!this.isAttached) {
-      throw new Error('buffer not attached')
-    }
+  public listen(eventName: string, cb: Function, disposables?: Disposable[]): void {
     this.client.attachBufferEvent(this, eventName, cb)
-    return () => {
-      this.unlisten(eventName, cb)
+    if (disposables) {
+      disposables.push({
+        dispose: () => {
+          this.client.detachBufferEvent(this, eventName, cb)
+        }
+      })
     }
-  }
-
-  unlisten(eventName: string, cb: Function) {
-    this.client.detachBufferEvent(this, eventName, cb)
   }
 }

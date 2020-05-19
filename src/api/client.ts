@@ -10,8 +10,6 @@ import { Window } from './Window'
 import { Tabpage } from './Tabpage'
 import { createLogger } from '../utils/logger'
 
-export const DETACH_BUFFER = Symbol('detachBuffer')
-export const ATTACH_BUFFER = Symbol('attachBuffer')
 const logger = createLogger('client')
 const isVim = process.env.VIM_NODE_RPC == '1'
 
@@ -141,18 +139,11 @@ export class NeovimClient extends Neovim {
     if (method.endsWith('_event')) {
       if (method.startsWith('nvim_buf_')) {
         const shortName = method.replace(/nvim_buf_(.*)_event/, '$1')
-        const buffer = args[0] as Buffer
-        const { id } = buffer
-
-        if (!this.isAttached(id)) {
-          // this is a problem
-          return
-        }
-
+        const { id } = args[0] as Buffer
+        if (!this.attachedBuffers.has(id)) return
         const bufferMap = this.attachedBuffers.get(id)
         const cbs = bufferMap.get(shortName) || []
         cbs.forEach(cb => cb(...args))
-
         // Handle `nvim_buf_detach_event`
         // clean `attachedBuffers` since it will no longer be attached
         if (shortName === 'detach') {
@@ -257,23 +248,10 @@ export class NeovimClient extends Neovim {
     return null
   }
 
-  public [ATTACH_BUFFER](buffer: Buffer): void {
-    this.attachedBuffers.set(buffer.id, new Map())
-  }
-
-  public [DETACH_BUFFER](buffer: Buffer): void {
-    this.attachedBuffers.delete(buffer.id)
-  }
-
   public attachBufferEvent(buffer: Buffer, eventName: string, cb: Function): void {
-    if (!this.isAttached(buffer.id)) return
-    const bufferMap = this.attachedBuffers.get(buffer.id)
-    if (!bufferMap.get(eventName)) {
-      bufferMap.set(eventName, [])
-    }
-
-    const cbs = bufferMap.get(eventName)
-    if (cbs.indexOf(cb) !== -1) return
+    const bufferMap = this.attachedBuffers.get(buffer.id) || new Map<string, Function[]>()
+    const cbs = bufferMap.get(eventName) || []
+    if (cbs.includes(cb)) return
     cbs.push(cb)
     bufferMap.set(eventName, cbs)
     this.attachedBuffers.set(buffer.id, bufferMap)
@@ -285,18 +263,9 @@ export class NeovimClient extends Neovim {
    */
   public detachBufferEvent(buffer: Buffer, eventName: string, cb: Function): void {
     const bufferMap = this.attachedBuffers.get(buffer.id)
-    if (!bufferMap) return
-
-    const handlers = (bufferMap.get(eventName) || []).filter(
-      handler => handler !== cb
-    )
-
-    // Remove eventName listener from bufferMap if no more handlers
-    if (!handlers.length) {
-      bufferMap.delete(eventName)
-    } else {
-      bufferMap.set(eventName, handlers)
-    }
+    if (!bufferMap || !bufferMap.has(eventName)) return
+    const handlers = bufferMap.get(eventName).filter(handler => handler !== cb)
+    bufferMap.set(eventName, handlers)
   }
 
   public pauseNotification(): void {
