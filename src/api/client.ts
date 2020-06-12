@@ -78,6 +78,10 @@ export class NeovimClient extends Neovim {
     })
   }
 
+  public send(arr: any[]): void {
+    this.transport.send(arr)
+  }
+
   /** Attaches msgpack to read/write streams * */
   public attach({
     reader,

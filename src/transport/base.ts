@@ -75,6 +75,8 @@ export default abstract class Transport extends EventEmitter {
 
   public abstract detach(): void
 
+  public abstract send(arr: any[]): void
+
   public abstract request(method: string, args: any[], cb: Function): any
 
   public abstract notify(method: string, args: any[]): void

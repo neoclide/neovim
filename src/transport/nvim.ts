@@ -119,7 +119,7 @@ export class NvimTransport extends Transport {
   }
 
   public request(method: string, args: any[], cb: Function): any {
-    if (!this.attached) return cb([0, 'transport disconnected'])
+    if (!this.attached) return
     let id = this.nextRequestId
     this.nextRequestId = this.nextRequestId + 1
     let startTs = Date.now()
@@ -151,6 +151,14 @@ export class NvimTransport extends Transport {
     this.debug('nvim notification:', method, args)
     this.encodeStream.write(
       msgpack.encode([2, method, args], {
+        codec: this.codec,
+      })
+    )
+  }
+
+  public send(arr: any[]): void {
+    this.encodeStream.write(
+      msgpack.encode(arr, {
         codec: this.codec,
       })
     )

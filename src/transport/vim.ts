@@ -55,6 +55,10 @@ export class VimTransport extends Transport {
     })
   }
 
+  public send(arr: any[]): void {
+    this.connection.send(arr)
+  }
+
   public detach(): void {
     if (!this.attached) return
     this.attached = false
