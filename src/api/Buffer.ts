@@ -260,7 +260,7 @@ export class Buffer extends BaseApi {
     const colEnd = typeof _end !== 'undefined' ? _end : -1
     const colStart = typeof _start !== 'undefined' ? _start : -0
     const srcId = typeof _srcId !== 'undefined' ? _srcId : -1
-    const method = hlGroup === '' ? 'request' : 'notify'
+    const method = srcId == -1 ? 'request' : 'notify'
     let res = this[method](`${this.prefix}add_highlight`, [
       srcId,
       hlGroup,
