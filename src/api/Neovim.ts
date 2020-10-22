@@ -1,5 +1,4 @@
-import { ApiInfo } from '../types/ApiInfo' // eslint-disable-line
-import { VimValue } from '../types/VimValue'
+import { ApiInfo, VimValue } from '../types'
 import { BaseApi } from './Base'
 import { Buffer } from './Buffer'
 import { Tabpage } from './Tabpage'

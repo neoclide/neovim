@@ -2,6 +2,7 @@ import Transport, { Response } from './base'
 import Connection from './connection'
 import { NeovimClient } from '../api'
 import Request from './request'
+import { Logger } from '../types';
 
 export class VimTransport extends Transport {
   private pending: Map<number, Request> = new Map()
@@ -11,8 +12,8 @@ export class VimTransport extends Transport {
   private client: NeovimClient
   private notifyMethod: string
 
-  constructor() {
-    super()
+  constructor(logger: Logger) {
+    super(logger)
     this.notifyMethod = process.env.COC_NVIM == '1' ? 'coc#api#notify' : 'nvim#api#notify'
   }
 

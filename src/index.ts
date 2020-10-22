@@ -1,6 +1,6 @@
 export { attach, Attach } from './attach/attach'
 export { FloatOptions } from './api/types'
-export { VimValue } from './types/VimValue'
+export { VimValue } from './types'
 export { UiAttachOptions } from './api/Neovim'
 export { BufferSetLines, BufferHighlight, BufferClearHighlight } from './api/Buffer'
 export { Neovim, NeovimClient, Buffer, Tabpage, Window } from './api/index'

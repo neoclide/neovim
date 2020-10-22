@@ -3,6 +3,7 @@ import * as msgpack from 'msgpack-lite'
 import Buffered from '../utils/buffered'
 import { Metadata } from '../api/types'
 import Transport, { Response } from './base'
+import { Logger } from '../types';
 
 export class NvimTransport extends Transport {
   private pending: Map<number, Function> = new Map()
@@ -17,8 +18,8 @@ export class NvimTransport extends Transport {
   // Neovim client that holds state
   private client: any
 
-  constructor() {
-    super()
+  constructor(logger: Logger) {
+    super(logger)
 
     const codec = this.setupCodec()
     this.encodeStream = msgpack.createEncodeStream({ codec })

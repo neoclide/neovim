@@ -1,4 +1,4 @@
-import fs from 'fs'
+import fs, { WriteStream } from 'fs'
 import os from 'os'
 import path from 'path'
 
@@ -49,10 +49,17 @@ function toString(arg: any): string {
   return String(arg)
 }
 
-const stream = invalid ? null : fs.createWriteStream(LOG_FILE_PATH, { encoding: 'utf8' })
 
 class Logger implements ILogger {
+  private _stream: WriteStream
   constructor(private name: string) {
+  }
+
+  private get stream(): WriteStream {
+    if (invalid) return null
+    if (this._stream) return this._stream
+    this._stream = fs.createWriteStream(LOG_FILE_PATH, { encoding: 'utf8' })
+    return this._stream
   }
 
   private getText(level: string, data: string, meta: any[]): string {
@@ -65,23 +72,23 @@ class Logger implements ILogger {
   }
 
   public debug(data: string, ...meta: any[]): void {
-    if (level != 'debug' || stream == null) return
-    stream.write(this.getText('debug', data, meta))
+    if (level != 'debug' || this.stream == null) return
+    this.stream.write(this.getText('debug', data, meta))
   }
 
   public info(data: string, ...meta: any[]): void {
-    if (stream == null) return
-    stream.write(this.getText('info', data, meta))
+    if (this.stream == null) return
+    this.stream.write(this.getText('info', data, meta))
   }
 
   public error(data: string, ...meta: any[]): void {
-    if (stream == null) return
-    stream.write(this.getText('error', data, meta))
+    if (this.stream == null) return
+    this.stream.write(this.getText('error', data, meta))
   }
 
   public trace(data: string, ...meta: any[]): void {
-    if (level != 'trace' || stream == null) return
-    stream.write(this.getText('trace', data, meta))
+    if (level != 'trace' || this.stream == null) return
+    this.stream.write(this.getText('trace', data, meta))
   }
 }
 

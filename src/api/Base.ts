@@ -1,8 +1,8 @@
 import { EventEmitter } from 'events'
 
 import Transport from '../transport/base'
-import { VimValue } from '../types/VimValue'
 import { NeovimClient } from './client'
+import { VimValue } from '../types'
 const isVim = process.env.VIM_NODE_RPC == '1'
 
 export interface BaseConstructorOptions {
@@ -48,10 +48,14 @@ export class BaseApi extends EventEmitter {
   }
 
   public async request(name: string, args: any[] = []): Promise<any> {
+    let stack = Error().stack
     return new Promise<any>((resolve, reject) => {
       this.transport.request(name, this.getArgsByPrefix(args), (err: any, res: any) => {
         if (err) {
-          reject(new Error(`request error ${name} - ${err[1]}`))
+          let e = new Error(`request error ${name} - ${err[1]}`)
+          e.stack = stack
+          this.client.logError(`request error on "${name}"`, args, err[1], stack)
+          reject(e)
         } else {
           resolve(res)
         }

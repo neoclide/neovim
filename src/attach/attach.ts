@@ -1,6 +1,7 @@
 import { createConnection } from 'net'
 import * as child from 'child_process'
 import { NeovimClient } from './../api/client'
+import { Logger } from '../types'
 
 export interface Attach {
   reader?: NodeJS.ReadableStream
@@ -14,7 +15,7 @@ export function attach({
   writer: _writer,
   proc,
   socket,
-}: Attach, _logger = null, requestApi = true): NeovimClient {
+}: Attach, logger: Logger = null, requestApi = true): NeovimClient {
   let writer: NodeJS.WritableStream
   let reader: NodeJS.ReadableStream
   let neovim: NeovimClient
@@ -43,7 +44,7 @@ export function attach({
   })
 
   if (writer && reader) {
-    neovim = new NeovimClient()
+    neovim = new NeovimClient(logger)
     neovim.attach({
       writer,
       reader,

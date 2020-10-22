@@ -3,7 +3,7 @@
  */
 import { NvimTransport } from '../transport/nvim'
 import { VimTransport } from '../transport/vim'
-import { VimValue } from '../types/VimValue'
+import { VimValue, Logger } from '../types'
 import { Neovim } from './Neovim'
 import { Buffer } from './Buffer'
 import { Window } from './Window'
@@ -41,17 +41,22 @@ export class NeovimClient extends Neovim {
   private functions: string[]
   private timers: Map<number, NodeJS.Timer> = new Map()
 
-  constructor() {
+  constructor(private logger: Logger) {
     // Neovim has no `data` or `metadata`
     super({})
     Object.defineProperty(this, 'client', {
       value: this
     })
-    let transport = isVim ? new VimTransport() : new NvimTransport()
+    let transport = isVim ? new VimTransport(logger) : new NvimTransport(logger)
     this.setTransport(transport)
     this.transportAttached = false
     this.handleRequest = this.handleRequest.bind(this)
     this.handleNotification = this.handleNotification.bind(this)
+  }
+
+  public logError(msg: string, ...args: any[]): void {
+    if (!this.logger) return
+    this.logger.error(msg, ...args)
   }
 
   public createBuffer(id: number): Buffer {
