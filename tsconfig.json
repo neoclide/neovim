@@ -5,7 +5,7 @@
     "esModuleInterop": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "lib": ["es2015", "dom"],
+    "lib": ["es2017", "es2018", "es2019"],
     "module": "commonjs",
     "moduleResolution": "node",
     "sourceMap": false,
@@ -13,14 +13,11 @@
     "noImplicitReturns": true,
     "noUnusedParameters": false,
     "suppressImplicitAnyIndexErrors": true,
-    "target": "es2015",
+    "target": "es2017",
     "types": ["node"],
     "outDir": "./lib"
   },
   "include": ["src"],
   "exclude": ["node_modules", "__tests__", "**/*.test.ts", "examples", "lib"],
-  "compileOnSave": false,
-  "atom": {
-    "rewriteTsconfig": false
-  }
+  "compileOnSave": false
 }

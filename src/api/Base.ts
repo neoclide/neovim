@@ -54,7 +54,9 @@ export class BaseApi extends EventEmitter {
         if (err) {
           let e = new Error(`request error ${name} - ${err[1]}`)
           e.stack = stack
-          this.client.logError(`request error on "${name}"`, args, err[1], stack)
+          if (!name.endsWith('get_var')) {
+            this.client.logError(`request error on "${name}"`, args, err[1], stack)
+          }
           reject(e)
         } else {
           resolve(res)
