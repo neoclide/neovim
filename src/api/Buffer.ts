@@ -295,6 +295,10 @@ export class Buffer extends BaseApi {
 
   /**
    * Add highlight to ranges.
+   *
+   * @param {string | number} srcId Unique key or namespace number.
+   * @param {string} hlGroup Highlight group.
+   * @param {Range[]} ranges List of highlight ranges
    */
   public highlightRanges(srcId: string | number, hlGroup: string, ranges: Range[]): void {
     for (let range of ranges) {
@@ -304,6 +308,10 @@ export class Buffer extends BaseApi {
 
   /**
    * Clear namespace by id or name.
+   *
+   * @param key Unique key or namespace number, use -1 for all namespaces
+   * @param lineStart Start of line, 0 based, default to 0.
+   * @param lineEnd End of line, 0 based, default to -1.
    */
   clearNamespace(key: number | string, lineStart = 0, lineEnd = -1) {
     this.client.call('coc#highlight#clear_highlight', [this.id, key, lineStart, lineEnd])

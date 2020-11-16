@@ -39,7 +39,6 @@ export class NeovimClient extends Neovim {
   private _channelId: number
   private attachedBuffers: Map<number, Map<string, Function[]>> = new Map()
   private functions: string[]
-  private timers: Map<number, NodeJS.Timer> = new Map()
 
   constructor(private logger: Logger) {
     // Neovim has no `data` or `metadata`
@@ -102,9 +101,6 @@ export class NeovimClient extends Neovim {
 
   /* called when attach process disconnected*/
   public detach(): void {
-    for (let timer of this.timers.values()) {
-      clearTimeout(timer)
-    }
     this.transport.detach()
     this.transportAttached = false
   }
@@ -279,24 +275,15 @@ export class NeovimClient extends Neovim {
 
   public pauseNotification(): void {
     this.transport.pauseNotification()
-    let pauseLevel = this.transport.pauseLevel
     let stack = Error().stack
-    let timer = setTimeout(() => {
-      if (this.transport.pauseLevel >= pauseLevel) {
-        this.transport.cancelNotification()
-        logger.error(`pauseNotification not finished after 1s`, stack)
+    process.nextTick(() => {
+      if (this.transport.pauseLevel > 0) {
+        this.logError(`resumeNotification not called within same tick:`, stack)
       }
-    }, 2000)
-    this.timers.set(pauseLevel, timer)
+    })
   }
 
   public resumeNotification(cancel?: boolean, notify?: boolean): Promise<any> {
-    let { pauseLevel } = this.transport
-    let timer = this.timers.get(pauseLevel)
-    if (timer) {
-      this.timers.delete(pauseLevel)
-      clearTimeout(timer)
-    }
     if (cancel) return Promise.resolve(this.transport.cancelNotification())
     if (notify) {
       return Promise.resolve(this.transport.resumeNotification(true))

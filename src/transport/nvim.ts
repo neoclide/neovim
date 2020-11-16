@@ -3,7 +3,7 @@ import * as msgpack from 'msgpack-lite'
 import Buffered from '../utils/buffered'
 import { Metadata } from '../api/types'
 import Transport, { Response } from './base'
-import { Logger } from '../types';
+import { Logger } from '../types'
 
 export class NvimTransport extends Transport {
   private pending: Map<number, Function> = new Map()
@@ -130,8 +130,9 @@ export class NvimTransport extends Transport {
         codec: this.codec,
       })
     )
+    let stack = Error().stack
     let timer = setTimeout(() => {
-      this.debug(`request to nvim cost more than 1s`, method, args)
+      this.debug(`request to vim blocked more than 1s: ${method}`, args, stack)
     }, 1000)
     this.pending.set(id, (err, res) => {
       clearTimeout(timer)
