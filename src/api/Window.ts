@@ -3,6 +3,7 @@ import { Buffer } from './Buffer'
 import { Tabpage } from './Tabpage'
 import { FloatOptions } from './types'
 import { clearInterval } from 'timers'
+import { Range } from '../types'
 
 export class Window extends BaseApi {
   public prefix = 'nvim_win_'
@@ -125,5 +126,32 @@ export class Window extends BaseApi {
       return null
     }
     return this.request(`${this.prefix}close`, [force])
+  }
+
+  /**
+   * Add highlight to ranges by using matchaddpos.
+   */
+  public highlightRanges(hlGroup: string, ranges: Range[], priority?: number): Promise<number[]>
+  public highlightRanges(hlGroup: string, ranges: Range[], priority: number, isNotify: true): null
+  public highlightRanges(hlGroup: string, ranges: Range[], priority = 10, isNotify?: boolean): Promise<number[]> | null {
+    if (isNotify) {
+      this.client.call('coc#highlight#match_ranges', [this.id, 0, ranges, hlGroup, priority], true)
+      return undefined
+    }
+    return this.client.call('coc#highlight#match_ranges', [this.id, 0, ranges, hlGroup, priority])
+  }
+
+  /**
+   * Clear match by highlight group.
+   */
+  public clearMatchGroup(hlGroup: string): void {
+    this.client.call('coc#highlight#clear_match_group', [this.id, hlGroup], true)
+  }
+
+  /**
+   * Clear match by match ids.
+   */
+  public clearMatches(ids: number[]): void {
+    this.client.call('coc#highlight#clear_matches', [this.id, ids], true)
   }
 }

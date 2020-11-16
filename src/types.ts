@@ -1,4 +1,33 @@
-/* eslint camelcase:0 */
+export interface Position {
+  /**
+   * Line position in a document (zero-based).
+   * If a line number is greater than the number of lines in a document, it defaults back to the number of lines in the document.
+   * If a line number is negative, it defaults to 0.
+   */
+  line: number
+  /**
+   * Character offset on a line in a document (zero-based). Assuming that the line is
+   * represented as a string, the `character` value represents the gap between the
+   * `character` and `character + 1`.
+   *
+   * If the character value is greater than the line length it defaults back to the
+   * line length.
+   * If a line number is negative, it defaults to 0.
+   */
+  character: number
+}
+
+export interface Range {
+  /**
+   * The range's start position
+   */
+  start: Position
+  /**
+   * The range's end position.
+   */
+  end: Position
+}
+
 export type Parameters = [string, string]
 
 export type FunctionInfo = {
@@ -39,11 +68,11 @@ export type VimValue =
   | { [key: string]: any }
 
 export interface Logger {
-  trace(message: any, ...args: any[]): void;
-  debug(message: any, ...args: any[]): void;
-  info(message: any, ...args: any[]): void;
-  warn(message: any, ...args: any[]): void;
-  error(message: any, ...args: any[]): void;
-  mark(message: any, ...args: any[]): void;
+  trace(message: any, ...args: any[]): void
+  debug(message: any, ...args: any[]): void
+  info(message: any, ...args: any[]): void
+  warn(message: any, ...args: any[]): void
+  error(message: any, ...args: any[]): void
+  mark(message: any, ...args: any[]): void
 }
 

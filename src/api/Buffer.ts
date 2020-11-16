@@ -1,3 +1,4 @@
+import { Range } from '../types'
 import { BaseApi } from './Base'
 import { ExtType, Metadata } from './types'
 
@@ -23,7 +24,7 @@ export interface Disposable {
   /**
    * Dispose this object.
    */
-  dispose(): void;
+  dispose(): void
 }
 
 type Chunk = [string, string]
@@ -271,10 +272,11 @@ export class Buffer extends BaseApi {
     return method === 'request' ? res as Promise<number> : Promise.resolve(null)
   }
 
-  /** Clears highlights from a given source group and a range of
-  lines
-  To clear a source group in the entire buffer, pass in 1 and -1
-  to lineStart and lineEnd respectively. */
+  /**
+   * Clear highlights of specified lins.
+   *
+   * @deprecated use clearNamespace instead.
+   */
   clearHighlight(args: BufferClearHighlight = {}) {
     const defaults = {
       srcId: -1,
@@ -291,12 +293,20 @@ export class Buffer extends BaseApi {
     ])
   }
 
-  clearNamespace(id: number, lineStart = 0, lineEnd = -1) {
-    return this.notify(`${this.prefix}clear_namespace`, [
-      id,
-      lineStart,
-      lineEnd,
-    ])
+  /**
+   * Add highlight to ranges.
+   */
+  public highlightRanges(srcId: string | number, hlGroup: string, ranges: Range[]): void {
+    for (let range of ranges) {
+      this.client.call('coc#highlight#range', [this.id, srcId, hlGroup, range], true)
+    }
+  }
+
+  /**
+   * Clear namespace by id or name.
+   */
+  clearNamespace(key: number | string, lineStart = 0, lineEnd = -1) {
+    this.client.call('coc#highlight#clear_highlight', [this.id, key, lineStart, lineEnd])
   }
 
   /**
