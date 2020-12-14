@@ -251,17 +251,17 @@ export class Buffer extends BaseApi {
     initialization, and later asynchronously add and clear
     highlights in response to buffer changes. */
   public addHighlight({
-    hlGroup: _hlGroup,
+    hlGroup,
     line,
     colStart: _start,
     colEnd: _end,
     srcId: _srcId,
   }: BufferHighlight): Promise<number | null> {
-    const hlGroup = typeof _hlGroup !== 'undefined' ? _hlGroup : ''
+    if (!hlGroup) throw new Error('hlGroup should not empty')
     const colEnd = typeof _end !== 'undefined' ? _end : -1
     const colStart = typeof _start !== 'undefined' ? _start : -0
     const srcId = typeof _srcId !== 'undefined' ? _srcId : -1
-    const method = srcId == -1 ? 'request' : 'notify'
+    const method = srcId == 0 ? 'request' : 'notify'
     let res = this[method](`${this.prefix}add_highlight`, [
       srcId,
       hlGroup,
