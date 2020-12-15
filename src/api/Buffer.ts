@@ -301,9 +301,7 @@ export class Buffer extends BaseApi {
    * @param {Range[]} ranges List of highlight ranges
    */
   public highlightRanges(srcId: string | number, hlGroup: string, ranges: Range[]): void {
-    for (let range of ranges) {
-      this.client.call('coc#highlight#range', [this.id, srcId, hlGroup, range], true)
-    }
+    this.client.call('coc#highlight#ranges', [this.id, srcId, hlGroup, ranges], true)
   }
 
   /**
