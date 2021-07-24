@@ -106,7 +106,7 @@ export class VimTransport extends Transport {
     }
     let fname = method.slice(5)
     if (fname == 'err_write') {
-      this.errText = this.errText + (args[1].toString() || '')
+      this.errText = this.errText + args[0].toString()
       return
     }
     if (fname == 'out_write') {
@@ -114,7 +114,7 @@ export class VimTransport extends Transport {
       if (!msg.includes('\n')) {
         this.outText = this.outText + msg
       } else {
-        let text = this.outText + (args[0].toString() || '')
+        let text = this.outText + args[0].toString()
         this.outText = ''
         this.connection.call(this.notifyMethod, [fname, [text]])
         this.connection.redraw()
@@ -122,7 +122,7 @@ export class VimTransport extends Transport {
       return
     }
     if (fname == 'err_writeln') {
-      let text = this.errText + (args[0].toString() || '')
+      let text = this.errText + args[0].toString()
       this.errText = ''
       this.connection.call(this.notifyMethod, [fname, [text]])
       this.connection.redraw()
