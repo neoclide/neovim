@@ -117,7 +117,6 @@ export class VimTransport extends Transport {
         let text = this.outText + args[0].toString()
         this.outText = ''
         this.connection.call(this.notifyMethod, [fname, [text]])
-        this.connection.redraw()
       }
       return
     }
@@ -125,7 +124,6 @@ export class VimTransport extends Transport {
       let text = this.errText + args[0].toString()
       this.errText = ''
       this.connection.call(this.notifyMethod, [fname, [text]])
-      this.connection.redraw()
       return
     }
     this.connection.call(this.notifyMethod, [fname, args])

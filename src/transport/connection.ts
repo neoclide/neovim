@@ -64,7 +64,7 @@ export default class Connection extends Emitter {
     this.send(['redraw', force ? 'force' : ''])
   }
 
-  public commmand(cmd: string): void {
+  public command(cmd: string): void {
     this.send(['ex', cmd])
   }
 
