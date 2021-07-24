@@ -2,7 +2,6 @@ import Emitter from 'events'
 import readline from 'readline'
 import { createLogger } from '../utils/logger'
 const logger = createLogger('connection')
-const debug = process.env.NODE_CLIENT_LOG_LEVEL == 'debug'
 
 export default class Connection extends Emitter {
   constructor(

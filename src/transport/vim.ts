@@ -2,7 +2,7 @@ import Transport, { Response } from './base'
 import Connection from './connection'
 import { NeovimClient } from '../api'
 import Request from './request'
-import { Logger } from '../types';
+import { Logger } from '../types'
 
 export class VimTransport extends Transport {
   private pending: Map<number, Request> = new Map()
@@ -11,6 +11,14 @@ export class VimTransport extends Transport {
   private attached = false
   private client: NeovimClient
   private notifyMethod: string
+  /**
+   * Cached error message
+   */
+  private errText = ''
+  /**
+   * Cached out message
+   */
+  private outText = ''
 
   constructor(logger: Logger) {
     super(logger)
@@ -96,7 +104,31 @@ export class VimTransport extends Transport {
         return
       }
     }
-    this.connection.call(this.notifyMethod, [method.slice(5), args])
+    let fname = method.slice(5)
+    if (fname == 'err_write') {
+      this.errText = this.errText + (args[1].toString() || '')
+      return
+    }
+    if (fname == 'out_write') {
+      let msg = args[0].toString() || ''
+      if (!msg.includes('\n')) {
+        this.outText = this.outText + msg
+      } else {
+        let text = this.outText + (args[0].toString() || '')
+        this.outText = ''
+        this.connection.call(this.notifyMethod, [fname, [text]])
+        this.connection.redraw()
+      }
+      return
+    }
+    if (fname == 'err_writeln') {
+      let text = this.errText + (args[0].toString() || '')
+      this.errText = ''
+      this.connection.call(this.notifyMethod, [fname, [text]])
+      this.connection.redraw()
+      return
+    }
+    this.connection.call(this.notifyMethod, [fname, args])
   }
 
   protected createResponse(requestId: number): Response {
