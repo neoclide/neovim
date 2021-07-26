@@ -14,10 +14,58 @@ export interface BufferHighlight {
   colEnd?: number
   srcId?: number
 }
+
 export interface BufferClearHighlight {
   srcId?: number
   lineStart?: number
   lineEnd?: number
+}
+
+export interface SignPlaceOption {
+  id?: number // 0
+  group?: string // ''
+  name: string
+  lnum: number
+  priority?: number
+}
+
+export interface SignUnplaceOption {
+  group?: string
+  id?: number
+}
+
+export interface SignPlacedOption {
+  group?: string
+  id?: number
+  lnum?: number
+}
+
+export interface SignItem {
+  group: string
+  id: number
+  lnum: number
+  name: string
+  priority: number
+}
+
+export interface HighlightItem {
+  hlGroup: string
+  /**
+   * 0 based
+   */
+  lnum: number
+  /**
+   * 0 based
+   */
+  colStart: number
+  /**
+   * 0 based
+   */
+  colEnd: number
+}
+
+export interface LineHighlights {
+  [key: number]: HighlightItem[]
 }
 
 export interface Disposable {
@@ -312,7 +360,64 @@ export class Buffer extends BaseApi {
    * @param lineEnd End of line, 0 based, default to -1.
    */
   clearNamespace(key: number | string, lineStart = 0, lineEnd = -1) {
-    this.client.call('coc#highlight#clear_highlight', [this.id, key, lineStart, lineEnd])
+    this.client.call('coc#highlight#clear_highlight', [this.id, key, lineStart, lineEnd], true)
+  }
+
+  /**
+   * Add sign to buffer by notification.
+   *
+   * @param {SignPlaceOption} sign
+   * @returns {void}
+   */
+  public placeSign(sign: SignPlaceOption): void {
+    let opts: any = { lnum: sign.lnum }
+    if (typeof sign.priority === 'number') opts.priority = sign.priority
+    this.client.call('sign_place', [sign.id || 0, sign.group || '', sign.name, this.id, opts], true)
+  }
+
+  /**
+   * Unplace signs by group name or id.
+   */
+  public unplaceSign(opts: SignUnplaceOption): void {
+    let details: any = { buffer: this.id }
+    if (opts.id != null) details.id = opts.id
+    this.client.call('sign_unplace', [opts.group || '', details], true)
+  }
+
+  /**
+   * Get signs by group name or id and lnum.
+   *
+   * @param {SignPlacedOption} opts
+   * @returns {Promise<SignItem[]>}
+   */
+  public async getSigns(opts: SignPlacedOption): Promise<SignItem[]> {
+    let res = await this.client.call('sign_getplaced', [this.id, opts || {}]) as any[]
+    return res[0].signs
+  }
+
+  /**
+   * Get highlight items by name space (end exclusive).
+   *
+   * @param {string | number} ns Namespace key or id.
+   * @param {number} start 0 based line number.
+   * @param {number} end 0 based line number.
+   * @returns {Promise<LineHighlights>}
+   */
+  public getHighlights(ns: string | number, start = 0, end = -1): Promise<LineHighlights> {
+    return this.client.call('coc#highlight#get', [this.id, ns, start, end])
+  }
+
+  /**
+   * Update highlight items by notification.
+   *
+   * @param {string | number} ns Namespace key or id.
+   * @param {HighlightItem[]} highlights Highlight items.
+   * @param {number} start 0 based line number.
+   * @param {number} end 0 based line number.
+   * @returns {void}
+   */
+  public updateHighlights(ns: string | number, highlights: HighlightItem[], start = 0, end = -1): void {
+    this.client.call('coc#highlight#update_highlights', [this.id, ns, highlights, start, end], true)
   }
 
   /**
