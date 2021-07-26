@@ -64,10 +64,6 @@ export interface HighlightItem {
   colEnd: number
 }
 
-export interface LineHighlights {
-  [key: number]: HighlightItem[]
-}
-
 export interface Disposable {
   /**
    * Dispose this object.
@@ -342,7 +338,7 @@ export class Buffer extends BaseApi {
   }
 
   /**
-   * Add highlight to ranges.
+   * Add highlight to ranges by notification.
    *
    * @param {string | number} srcId Unique key or namespace number.
    * @param {string} hlGroup Highlight group.
@@ -376,7 +372,7 @@ export class Buffer extends BaseApi {
   }
 
   /**
-   * Unplace signs by group name or id.
+   * Unplace signs by notification
    */
   public unplaceSign(opts: SignUnplaceOption): void {
     let details: any = { buffer: this.id }
@@ -401,10 +397,17 @@ export class Buffer extends BaseApi {
    * @param {string | number} ns Namespace key or id.
    * @param {number} start 0 based line number.
    * @param {number} end 0 based line number.
-   * @returns {Promise<LineHighlights>}
+   * @returns {Promise<HighlightItem[]>}
    */
-  public getHighlights(ns: string | number, start = 0, end = -1): Promise<LineHighlights> {
-    return this.client.call('coc#highlight#get', [this.id, ns, start, end])
+  public async getHighlights(ns: string | number, start = 0, end = -1): Promise<HighlightItem[]> {
+    let res: HighlightItem[] = []
+    let obj = await this.client.call('coc#highlight#get', [this.id, ns, start, end])
+    for (let arr of Object.values(obj)) {
+      if (Array.isArray(arr)) {
+        res.push(...arr)
+      }
+    }
+    return res
   }
 
   /**
