@@ -43,6 +43,11 @@ export class Neovim extends BaseApi {
     return [args]
   }
 
+  public echoError(msg: string): void {
+    let prefix = process.env.COC_NVIM == '1' ? '[coc.nvim] ' : ''
+    this.errWriteLine(prefix + msg)
+  }
+
   public get apiInfo(): Promise<[number, ApiInfo]> {
     return this.request(`${this.prefix}get_api_info`)
   }
