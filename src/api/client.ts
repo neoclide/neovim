@@ -55,10 +55,11 @@ export class NeovimClient extends Neovim {
 
   public echoError(msg: string | Error): void {
     let prefix = process.env.COC_NVIM == '1' ? '[coc.nvim] ' : ''
-    this.errWriteLine(prefix + msg + (typeof msg === 'string' ? '' : ' use :CocOpenLog for details'))
     if (typeof msg === 'string') {
-      this.logError(msg)
+      this.errWriteLine(prefix + msg)
+      this.logError(msg, Error().stack)
     } else {
+      this.errWriteLine(prefix + msg.message + ' use :CocOpenLog for details')
       this.logError(msg.message || 'Unknown error', msg.stack)
     }
   }
