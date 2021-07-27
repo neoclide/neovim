@@ -64,6 +64,14 @@ export interface HighlightItem {
   colEnd: number
 }
 
+export interface KeymapOption {
+  nowait?: boolean
+  silent?: boolean
+  script?: boolean
+  expr?: boolean
+  unique?: boolean
+}
+
 export interface Disposable {
   /**
    * Dispose this object.
@@ -243,6 +251,13 @@ export class Buffer extends BaseApi {
   /** Gets keymap */
   public getKeymap(mode: string): Promise<object[]> {
     return this.request(`${this.prefix}get_keymap`, [mode])
+  }
+
+  /**
+   * Add keymap by notification.
+   */
+  public setKeymap(mode: string, lhs: string, rhs: string, opts: KeymapOption = {}): void {
+    this.client.call('coc#compat#buf_add_keymap', [this.id, mode, lhs, rhs, opts], true)
   }
 
   /**
