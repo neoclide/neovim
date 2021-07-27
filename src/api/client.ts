@@ -53,6 +53,16 @@ export class NeovimClient extends Neovim {
     this.handleNotification = this.handleNotification.bind(this)
   }
 
+  public echoError(msg: string | Error): void {
+    let prefix = process.env.COC_NVIM == '1' ? '[coc.nvim] ' : ''
+    this.errWriteLine(prefix + msg + (typeof msg === 'string' ? '' : ' use :CocOpenLog for details'))
+    if (typeof msg === 'string') {
+      this.logError(msg)
+    } else {
+      this.logError(msg.message || 'Unknown error', msg.stack)
+    }
+  }
+
   public logError(msg: string, ...args: any[]): void {
     if (!this.logger) return
     this.logger.error(msg, ...args)
