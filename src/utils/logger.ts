@@ -49,6 +49,9 @@ function toString(arg: any): string {
   return String(arg)
 }
 
+function toTimeString(d: Date): string {
+  return `${d.getHours()}:${d.getMinutes()}:${d.getSeconds()}.${d.getMilliseconds()}`
+}
 
 class Logger implements ILogger {
   private _stream: WriteStream
@@ -68,7 +71,7 @@ class Logger implements ILogger {
       let arr = toObject(meta)
       more = ' ' + arr.map(o => toString(o))
     }
-    return `${new Date().toLocaleTimeString()} ${level.toUpperCase()} [${this.name}] - ${data}${more}\n`
+    return `${toTimeString(new Date())} ${level.toUpperCase()} [${this.name}] - ${data}${more}\n`
   }
 
   public debug(data: string, ...meta: any[]): void {
