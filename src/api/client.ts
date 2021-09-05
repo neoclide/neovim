@@ -97,6 +97,14 @@ export class NeovimClient extends Neovim {
     this.transport.send(arr)
   }
 
+  /**
+   * Invoke redraw on vim.
+   */
+  public redrawVim(force?: boolean): void {
+    if (!isVim) return
+    this.transport.send(['redraw', force ? 'force' : ''])
+  }
+
   /** Attaches msgpack to read/write streams * */
   public attach({
     reader,
