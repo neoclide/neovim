@@ -1,6 +1,5 @@
 import { Range } from '../types'
 import { BaseApi } from './Base'
-import { ExtType, Metadata } from './types'
 
 export interface BufferSetLines {
   start?: number
@@ -13,6 +12,37 @@ export interface BufferHighlight {
   colStart?: number
   colEnd?: number
   srcId?: number
+}
+
+export interface ExtmarkOptions {
+  id?: number
+  // 0-based inclusive.
+  end_line?: number
+  // 0-based exclusive.
+  end_col?: number
+  //  name of the highlight group used to highlight this mark.
+  hl_group?: string
+  hl_mode?: 'replace' | 'combine' | 'blend'
+  hl_eol?: boolean
+  // A list of [text, highlight] tuples
+  virt_text?: [string, string | string[]][]
+  virt_text_pos?: 'eol' | 'overlay' | 'right_align'
+  virt_text_win_col?: number
+  virt_text_hide?: boolean
+  virt_lines?: [[string, string | string[]][]][]
+  virt_lines_above?: boolean
+  virt_lines_leftcol?: boolean
+  right_gravity?: boolean
+  end_right_gravity?: boolean
+  priority?: number
+}
+
+export interface ExtmarkDetails {
+  end_col: number
+  end_row: number
+  priority: number
+  virt_text?: [string, string][]
+  virt_lines?: [string, string][][]
 }
 
 export interface BufferClearHighlight {
@@ -188,6 +218,71 @@ export class Buffer extends BaseApi {
       opts,
     ])
     return Promise.resolve(src_id)
+  }
+
+  /**
+   * Removes an ext mark by notification.
+   *
+   * @public
+   * @param {number} ns_id - Namespace id
+   * @param {number} id - Extmark id
+   */
+  public deleteExtMark(ns_id: number, id: number): void {
+    this.notify(`${this.prefix}del_extmark`, [
+      ns_id,
+      id,
+    ])
+  }
+
+  /**
+   * Gets the position (0-indexed) of an extmark.
+   *
+   * @param {number} ns_id - Namespace id
+   * @param {number} id - Extmark id
+   * @param {Object} opts - Optional parameters.
+   * @returns {Promise<[] | [number, number] | [number, number, ExtmarkDetails]>}
+   */
+  public async getExtMarkById(ns_id: number, id: number, opts: { details?: boolean } = {}): Promise<[] | [number, number] | [number, number, ExtmarkDetails]> {
+    return this.request(`${this.prefix}get_extmark_by_id`, [ns_id, id, opts])
+  }
+
+  /**
+   * Gets extmarks in "traversal order" from a |charwise| region defined by
+   * buffer positions (inclusive, 0-indexed |api-indexing|).
+   *
+   * Region can be given as (row,col) tuples, or valid extmark ids (whose
+   * positions define the bounds). 0 and -1 are understood as (0,0) and (-1,-1)
+   * respectively, thus the following are equivalent:
+   *
+   *     nvim_buf_get_extmarks(0, my_ns, 0, -1, {})
+   *     nvim_buf_get_extmarks(0, my_ns, [0,0], [-1,-1], {})
+   *
+   * @param {number} ns_id - Namespace id
+   * @param {[number, number] | number} start
+   * @param {[number, number] | number} end
+   * @param {Object} opts
+   * @returns {Promise<[number, number, number, ExtmarkDetails?][]>}
+   */
+  public async getExtMarks(ns_id: number, start: [number, number] | number, end: [number, number] | number, opts: { details?: boolean, limit?: number } = {}): Promise<[number, number, number, ExtmarkDetails?][]> {
+    return this.request(`${this.prefix}get_extmarks`, [ns_id, start, end, opts])
+  }
+
+  /**
+   * Creates or updates an extmark by notification, `:h nvim_buf_set_extmark`.
+   *
+   * @param {number} ns_id
+   * @param {number} line
+   * @param {number} col
+   * @param {ExtmarkOptions} opts
+   * @returns {void}
+   */
+  public setExtMark(ns_id: number, line: number, col: number, opts: ExtmarkOptions = {}): void {
+    this.notify(`${this.prefix}set_extmark`, [
+      ns_id,
+      line,
+      col,
+      opts
+    ])
   }
 
   /** Insert lines at `start` index */
