@@ -29,7 +29,7 @@ export interface ExtmarkOptions {
   virt_text_pos?: 'eol' | 'overlay' | 'right_align'
   virt_text_win_col?: number
   virt_text_hide?: boolean
-  virt_lines?: [[string, string | string[]][]][]
+  virt_lines?: [string, string | string[]][][]
   virt_lines_above?: boolean
   virt_lines_leftcol?: boolean
   right_gravity?: boolean
@@ -42,7 +42,7 @@ export interface ExtmarkDetails {
   end_row: number
   priority: number
   virt_text?: [string, string][]
-  virt_lines?: [string, string][][]
+  virt_lines?: [string, string | string][][]
 }
 
 export interface BufferClearHighlight {
