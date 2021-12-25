@@ -41,6 +41,7 @@ export interface ExtmarkDetails {
   end_col: number
   end_row: number
   priority: number
+  hl_group?: string
   virt_text?: [string, string][]
   virt_lines?: [string, string | string][][]
 }
