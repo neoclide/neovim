@@ -1,9 +1,0 @@
-{
-  "extends": "./node_modules/@chemzqm/tslint-config/tslint.json",
-  "rules": {
-    "jsdoc-format": false
-  },
-  "linterOptions": {
-    "exclude": []
-  }
-}
