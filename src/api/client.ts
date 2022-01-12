@@ -39,6 +39,7 @@ export class NeovimClient extends Neovim {
   private _channelId: number
   private attachedBuffers: Map<number, Map<string, Function[]>> = new Map()
   private functions: string[]
+  public readonly isVim = isVim
 
   constructor(private logger: Logger) {
     // Neovim has no `data` or `metadata`

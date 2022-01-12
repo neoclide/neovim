@@ -205,6 +205,7 @@ export class Buffer extends BaseApi {
    * Set virtual text for a line
    *
    * @public
+   * @deprecated Use setExtMark() instead.
    * @param {number} src_id - Source group to use or 0 to use a new group, or -1
    * @param {number} line - Line to annotate with virtual text (zero-indexed)
    * @param {Chunk[]} chunks - List with [text, hl_group]
@@ -212,6 +213,7 @@ export class Buffer extends BaseApi {
    * @returns {Promise<number>}
    */
   public setVirtualText(src_id: number, line: number, chunks: Chunk[], opts: { [index: string]: any } = {}): Promise<number> {
+    if (this.client.isVim) return Promise.resolve(-1)
     this.notify(`${this.prefix}set_virtual_text`, [
       src_id,
       line,
@@ -229,6 +231,7 @@ export class Buffer extends BaseApi {
    * @param {number} id - Extmark id
    */
   public deleteExtMark(ns_id: number, id: number): void {
+    if (this.client.isVim) return
     this.notify(`${this.prefix}del_extmark`, [
       ns_id,
       id,
@@ -244,6 +247,7 @@ export class Buffer extends BaseApi {
    * @returns {Promise<[] | [number, number] | [number, number, ExtmarkDetails]>}
    */
   public async getExtMarkById(ns_id: number, id: number, opts: { details?: boolean } = {}): Promise<[] | [number, number] | [number, number, ExtmarkDetails]> {
+    if (this.client.isVim) return Promise.resolve([])
     return this.request(`${this.prefix}get_extmark_by_id`, [ns_id, id, opts])
   }
 
@@ -265,6 +269,7 @@ export class Buffer extends BaseApi {
    * @returns {Promise<[number, number, number, ExtmarkDetails?][]>}
    */
   public async getExtMarks(ns_id: number, start: [number, number] | number, end: [number, number] | number, opts: { details?: boolean, limit?: number } = {}): Promise<[number, number, number, ExtmarkDetails?][]> {
+    if (this.client.isVim) return Promise.resolve([])
     return this.request(`${this.prefix}get_extmarks`, [ns_id, start, end, opts])
   }
 
@@ -278,6 +283,7 @@ export class Buffer extends BaseApi {
    * @returns {void}
    */
   public setExtMark(ns_id: number, line: number, col: number, opts: ExtmarkOptions = {}): void {
+    if (this.client.isVim) return
     this.notify(`${this.prefix}set_extmark`, [
       ns_id,
       line,
@@ -430,7 +436,7 @@ export class Buffer extends BaseApi {
   /**
    * Clear highlights of specified lins.
    *
-   * @deprecated use clearNamespace instead.
+   * @deprecated use clearNamespace() instead.
    */
   clearHighlight(args: BufferClearHighlight = {}) {
     const defaults = {

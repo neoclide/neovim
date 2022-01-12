@@ -77,7 +77,7 @@ describe('Nvim Promise API', () => {
     return new Promise(resolve =>
       setImmediate(() => {
         expect(notifications).toEqual([{ method: 'notify', args: [1, 2, 3] }])
-        resolve()
+        resolve(undefined)
       })
     )
   })

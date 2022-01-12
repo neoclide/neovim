@@ -292,9 +292,21 @@ export class Neovim extends BaseApi {
     return this.request(`${this.prefix}command`, [arg])
   }
 
-  /** Runs a command and returns output (synchronous?) */
+  /**
+   * Runs a command and returns output.
+   *
+   * @deprecated Use exec instead.
+   */
   public commandOutput(arg: string): Promise<string> {
     return this.request(`${this.prefix}command_output`, [arg])
+  }
+
+  /**
+   * Executes Vimscript (multiline block of Ex-commands), like
+   * anonymous |:source|
+   */
+  public exec(src: string, output = false): Promise<string> {
+    return this.request(`${this.prefix}exec`, [src, output])
   }
 
   /** Gets a v: variable */
