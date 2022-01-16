@@ -536,7 +536,12 @@ export class Buffer extends BaseApi {
    * @param {number} end 0 based line number.
    * @returns {void}
    */
-  public updateHighlights(ns: string | number, highlights: HighlightItem[], start = 0, end = -1): void {
+  public updateHighlights(ns: string, highlights: HighlightItem[], start = 0, end = -1): void {
+    if (start == 0 && end == -1) {
+      let arr = highlights.map(o => [o.hlGroup, o.lnum, o.colStart, o.colEnd])
+      this.client.call('coc#highlight#buffer_update', [this.id, ns, arr], true)
+      return
+    }
     this.client.call('coc#highlight#update_highlights', [this.id, ns, highlights, start, end], true)
   }
 
