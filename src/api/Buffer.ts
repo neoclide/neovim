@@ -102,6 +102,13 @@ export interface HighlightItem {
   end_incl?: boolean
 }
 
+export interface HighlightOption {
+  start?: number
+  end?: number
+  priority?: number
+  changedtick?: number
+}
+
 export interface KeymapOption {
   nowait?: boolean
   silent?: boolean
@@ -539,18 +546,24 @@ export class Buffer extends BaseApi {
    *
    * @param {string | number} ns Namespace key or id.
    * @param {HighlightItem[]} highlights Highlight items.
-   * @param {number} start 0 based line number.
-   * @param {number} end 0 based line number.
-   * @param {priority} priority Priority of this highlight.
+   * @param {HighlightOption} opts Optional options.
    * @returns {void}
    */
-  public updateHighlights(ns: string, highlights: HighlightItem[], start = 0, end = -1, priority?: number): void {
-    if (start == 0 && end == -1) {
-      let arr = highlights.map(o => [o.hlGroup, o.lnum, o.colStart, o.colEnd])
-      this.client.call('coc#highlight#buffer_update', [this.id, ns, arr, priority], true)
+  public updateHighlights(ns: string, highlights: HighlightItem[], opts: HighlightOption = {}): void {
+    if (typeof opts === 'number') {
+      this.client.logError('Call of buffer.updateHighlights need updated to use options.', new Error().stack)
       return
     }
-    this.client.call('coc#highlight#update_highlights', [this.id, ns, highlights, start, end, priority], true)
+    let start = typeof opts.start === 'number' ? opts.start : 0
+    let end = typeof opts.end === 'number' ? opts.end : -1
+    let changedtick = typeof opts.changedtick === 'number' ? opts.changedtick : null
+    let priority = typeof opts.priority === 'number' ? opts.priority : null
+    if (start == 0 && end == -1) {
+      let arr = highlights.map(o => [o.hlGroup, o.lnum, o.colStart, o.colEnd])
+      this.client.call('coc#highlight#buffer_update', [this.id, ns, arr, priority, changedtick], true)
+      return
+    }
+    this.client.call('coc#highlight#update_highlights', [this.id, ns, highlights, start, end, priority, changedtick], true)
   }
 
   /**
