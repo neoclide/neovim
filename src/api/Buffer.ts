@@ -93,6 +93,13 @@ export interface HighlightItem {
    * 0 based
    */
   colEnd: number
+
+  /**
+   * See :h prop_type_add on vim8
+   */
+  combine?: boolean
+  start_incl?: boolean
+  end_incl?: boolean
 }
 
 export interface KeymapOption {
@@ -516,7 +523,7 @@ export class Buffer extends BaseApi {
    * @param {number} end 0 based line number.
    * @returns {Promise<HighlightItem[]>}
    */
-  public async getHighlights(ns: string | number, start = 0, end = -1): Promise<HighlightItem[]> {
+  public async getHighlights(ns: string | number, start = 0, end = -1): Promise<Omit<HighlightItem, 'start_incl' | 'end_incl' | 'combine'>[]> {
     let res: HighlightItem[] = []
     let obj = await this.client.call('coc#highlight#get', [this.id, ns, start, end])
     for (let arr of Object.values(obj)) {
@@ -534,15 +541,16 @@ export class Buffer extends BaseApi {
    * @param {HighlightItem[]} highlights Highlight items.
    * @param {number} start 0 based line number.
    * @param {number} end 0 based line number.
+   * @param {priority} priority Priority of this highlight.
    * @returns {void}
    */
-  public updateHighlights(ns: string, highlights: HighlightItem[], start = 0, end = -1): void {
+  public updateHighlights(ns: string, highlights: HighlightItem[], start = 0, end = -1, priority?: number): void {
     if (start == 0 && end == -1) {
       let arr = highlights.map(o => [o.hlGroup, o.lnum, o.colStart, o.colEnd])
-      this.client.call('coc#highlight#buffer_update', [this.id, ns, arr], true)
+      this.client.call('coc#highlight#buffer_update', [this.id, ns, arr, priority], true)
       return
     }
-    this.client.call('coc#highlight#update_highlights', [this.id, ns, highlights, start, end], true)
+    this.client.call('coc#highlight#update_highlights', [this.id, ns, highlights, start, end, priority], true)
   }
 
   /**
