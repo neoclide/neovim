@@ -559,7 +559,7 @@ export class Buffer extends BaseApi {
     let changedtick = typeof opts.changedtick === 'number' ? opts.changedtick : null
     let priority = typeof opts.priority === 'number' ? opts.priority : null
     if (start == 0 && end == -1) {
-      let arr = highlights.map(o => [o.hlGroup, o.lnum, o.colStart, o.colEnd])
+      let arr = highlights.map(o => [o.hlGroup, o.lnum, o.colStart, o.colEnd, o.combine === false ? 0 : 1, o.start_incl ? 1 : 0, o.end_incl ? 1 : 0])
       this.client.call('coc#highlight#buffer_update', [this.id, ns, arr, priority, changedtick], true)
       return
     }
