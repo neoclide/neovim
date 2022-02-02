@@ -305,7 +305,7 @@ export class NeovimClient extends Neovim {
 
   public resumeNotification(redrawVim?: boolean, notify?: boolean): Promise<any> {
     if (isVim && redrawVim) {
-      this.transport.notify('command', ['redraw'])
+      this.transport.notify('nvim_command', ['redraw'])
     }
     if (notify) {
       return Promise.resolve(this.transport.resumeNotification(true))
