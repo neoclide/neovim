@@ -303,8 +303,10 @@ export class NeovimClient extends Neovim {
     })
   }
 
-  public resumeNotification(cancel?: boolean, notify?: boolean): Promise<any> {
-    if (cancel) return Promise.resolve(this.transport.cancelNotification())
+  public resumeNotification(redrawVim?: boolean, notify?: boolean): Promise<any> {
+    if (isVim && redrawVim) {
+      this.transport.notify('redraw', [])
+    }
     if (notify) {
       return Promise.resolve(this.transport.resumeNotification(true))
     }
@@ -313,6 +315,6 @@ export class NeovimClient extends Neovim {
 
   public hasFunction(name: string): boolean {
     if (!this.functions) return true
-    return this.functions.indexOf(name) !== -1
+    return this.functions.includes(name)
   }
 }
