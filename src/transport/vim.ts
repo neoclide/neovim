@@ -97,12 +97,18 @@ export class VimTransport extends Transport {
 
   public notify(method: string, args: any[]): void {
     if (!this.attached) return
+    let isRedraw = method === 'nvim_command' && ['redraw', 'redraw!'].includes(args[0])
     if (this.pauseLevel != 0) {
+      if (isRedraw) this.connection.cancelRedraw()
       let arr = this.paused.get(this.pauseLevel)
       if (arr) {
         arr.push([method, args])
         return
       }
+    }
+    if (isRedraw) {
+      this.connection.redraw(args[0] === 'redraw!')
+      return
     }
     let fname = method.slice(5)
     if (fname == 'err_write') {
