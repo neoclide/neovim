@@ -5,7 +5,6 @@ const logger = createLogger('connection')
 
 // vim connection by using channel feature
 export default class Connection extends Emitter {
-  private redrawTimer: NodeJS.Timer | undefined
   constructor(
     private readable: NodeJS.ReadableStream,
     private writeable: NodeJS.WritableStream) {
@@ -62,26 +61,8 @@ export default class Connection extends Emitter {
     }
   }
 
-  public cancelRedraw(): void {
-    if (this.redrawTimer) {
-      clearTimeout(this.redrawTimer)
-      this.redrawTimer = undefined
-    }
-  }
-
   public redraw(force?: boolean): void {
-    if (this.redrawTimer) {
-      clearTimeout(this.redrawTimer)
-      this.redrawTimer = undefined
-    }
-    if (force) {
-      this.send(['redraw', 'force'])
-      return
-    }
-    this.redrawTimer = setTimeout(() => {
-      this.redrawTimer = undefined
-      this.send(['redraw'])
-    }, 100)
+    this.send(['redraw', force ? 'force' : ''])
   }
 
   public command(cmd: string): void {
@@ -101,9 +82,6 @@ export default class Connection extends Emitter {
   }
 
   public dispose(): void {
-    if (this.redrawTimer) {
-      clearTimeout(this.redrawTimer)
-    }
     this.removeAllListeners()
   }
 }
