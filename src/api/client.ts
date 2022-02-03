@@ -103,7 +103,7 @@ export class NeovimClient extends Neovim {
    */
   public redrawVim(force?: boolean): void {
     if (!isVim) return
-    this.transport.send(['redraw', force ? 'force' : ''])
+    this.transport.notify('nvim_command', ['redraw' + (force ? '!' : '')])
   }
 
   /** Attaches msgpack to read/write streams * */
