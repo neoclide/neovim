@@ -151,7 +151,6 @@ export class NvimTransport extends Transport {
       }
     }
     this.debug('nvim notification:', method, args)
-    this._lastNotification = { method, args }
     this.encodeStream.write(
       msgpack.encode([2, method, args], {
         codec: this.codec,

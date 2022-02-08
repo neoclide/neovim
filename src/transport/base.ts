@@ -10,15 +10,10 @@ export interface Response {
 
 export default abstract class Transport extends EventEmitter {
   public pauseLevel = 0
-  protected _lastNotification: { method: string, args: any[] } | undefined
   protected paused: Map<number, [string, any[]][]> = new Map()
 
   constructor(protected logger: ILogger) {
     super()
-  }
-
-  public get lastNotification(): { method: string, args: any[] } | undefined {
-    return this._lastNotification
   }
 
   protected debug(key: string, ...meta: any[]): void {

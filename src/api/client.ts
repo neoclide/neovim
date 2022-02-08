@@ -201,8 +201,6 @@ export class NeovimClient extends Neovim {
       }
       if (method === 'nvim_error_event') {
         this.logger.error(`Error event from nvim:`, args[0], args[1])
-        let { lastNotification } = this.transport
-        this.logger.error(`Lastest notification:`, lastNotification?.method, lastNotification?.args)
         return
       }
       this.logger.debug(`Unhandled event: ${method}`, args)
