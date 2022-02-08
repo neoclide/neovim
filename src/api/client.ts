@@ -3,12 +3,12 @@
  */
 import { NvimTransport } from '../transport/nvim'
 import { VimTransport } from '../transport/vim'
-import { VimValue, Logger } from '../types'
+import { VimValue } from '../types'
 import { Neovim } from './Neovim'
 import { Buffer } from './Buffer'
 import { Window } from './Window'
 import { Tabpage } from './Tabpage'
-import { createLogger } from '../utils/logger'
+import { createLogger, ILogger } from '../utils/logger'
 
 const logger = createLogger('client')
 const isVim = process.env.VIM_NODE_RPC == '1'
@@ -41,7 +41,7 @@ export class NeovimClient extends Neovim {
   private functions: string[]
   public readonly isVim = isVim
 
-  constructor(private logger: Logger) {
+  constructor(private logger: ILogger) {
     // Neovim has no `data` or `metadata`
     super({})
     Object.defineProperty(this, 'client', {
@@ -184,6 +184,7 @@ export class NeovimClient extends Neovim {
             this.notify('nvim_call_function', ['coc#rpc#async_response', [id, resp, isError]])
           }
         })
+        return
       }
       // nvim_async_response_event
       if (method.startsWith('nvim_async_response')) {
@@ -198,8 +199,13 @@ export class NeovimClient extends Neovim {
         response.finish(err, res)
         return
       }
-      // tslint:disable-next-line: no-console
-      // console.error(`Unhandled event: ${method}`)
+      if (method === 'nvim_error_event') {
+        this.logger.error(`Error event from nvim:`, args[0], args[1])
+        let { lastNotification } = this.transport
+        this.logger.error(`Lastest notification:`, lastNotification?.method, lastNotification?.args)
+        return
+      }
+      this.logger.debug(`Unhandled event: ${method}`, args)
     } else {
       this.emit('notification', method, args)
     }

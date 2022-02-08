@@ -6,7 +6,16 @@ export interface ILogger {
   debug: (data: string, ...meta: any[]) => void
   info: (data: string, ...meta: any[]) => void
   error: (data: string, ...meta: any[]) => void
+  warn: (data: string, ...meta: any[]) => void
   trace: (data: string, ...meta: any[]) => void
+}
+
+export const nullLogger: ILogger = {
+  debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  trace: () => {},
 }
 
 function getLogFile(): string {
@@ -82,6 +91,11 @@ class Logger implements ILogger {
   public info(data: string, ...meta: any[]): void {
     if (this.stream == null) return
     this.stream.write(this.getText('info', data, meta))
+  }
+
+  public warn(data: string, ...meta: any[]): void {
+    if (this.stream == null) return
+    this.stream.write(this.getText('warn', data, meta))
   }
 
   public error(data: string, ...meta: any[]): void {

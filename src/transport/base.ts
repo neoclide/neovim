@@ -1,7 +1,6 @@
 import { EventEmitter } from 'events'
-import { createLogger } from '../utils/logger'
+import { createLogger, ILogger } from '../utils/logger'
 import { NeovimClient } from '../api'
-import { Logger } from '../types';
 const debug = process.env.NODE_CLIENT_LOG_LEVEL == 'debug'
 const logger = createLogger('transport')
 
@@ -11,10 +10,15 @@ export interface Response {
 
 export default abstract class Transport extends EventEmitter {
   public pauseLevel = 0
+  protected _lastNotification: { method: string, args: any[] } | undefined
   protected paused: Map<number, [string, any[]][]> = new Map()
 
-  constructor(protected logger: Logger) {
+  constructor(protected logger: ILogger) {
     super()
+  }
+
+  public get lastNotification(): { method: string, args: any[] } | undefined {
+    return this._lastNotification
   }
 
   protected debug(key: string, ...meta: any[]): void {
