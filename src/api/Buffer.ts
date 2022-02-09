@@ -417,7 +417,7 @@ export class Buffer extends BaseApi {
     is generated and returned. Succesive calls can pass in it as
     "src_id" to add new highlights to the same source group. All
     highlights in the same group can then be cleared with
-    nvim_buf_clear_highlight. If the highlight never will be
+    nvim_buf_clear_namespace. If the highlight never will be
     manually deleted pass in -1 for "src_id".
 
     If "hl_group" is the empty string no highlight is added, but a

@@ -210,10 +210,10 @@ export class Neovim extends BaseApi {
 
   /**
    * Executes lua, it's possible neovim client does not support this
+   * Make sure `nvim.hasFunction('nvim-exec_lua')` returns `true`
    */
   public lua(code: string, args: VimValue[] = []): Promise<object> {
-    const _args = this.getArgs(args)
-    return this.request(`${this.prefix}execute_lua`, [code, _args])
+    return this.request(`${this.prefix}exec_lua`, [code, args])
   }
 
   // Alias for `lua()` to be consistent with neovim API
