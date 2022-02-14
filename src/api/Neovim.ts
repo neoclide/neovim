@@ -218,7 +218,8 @@ export class Neovim extends BaseApi {
 
   // Alias for `lua()` to be consistent with neovim API
   public executeLua(code: string, args: VimValue[] = []): Promise<object> {
-    return this.lua(code, args)
+    const _args = this.getArgs(args)
+    return this.lua(code, _args)
   }
 
   public callDictFunction(
