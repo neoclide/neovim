@@ -1,7 +1,7 @@
 {
   "name": "@chemzqm/neovim",
   "description": "NodeJS client API for vim8 and neovim",
-  "version": "5.7.3",
+  "version": "5.7.4",
   "homepage": "https://github.com/chemzqm/node-client",
   "authors": [
     {
