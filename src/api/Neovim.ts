@@ -71,6 +71,10 @@ export class Neovim extends BaseApi {
   }
 
   public createNamespace(name = ""): Promise<number> {
+    if (process.env.COC_NVIM == '1') {
+      name = name.startsWith('coc-') ? name.slice(4) : name
+      return this.request(`${this.prefix}call_function`, ['coc#highlight#create_namespace', [name]])
+    }
     return this.request(`${this.prefix}create_namespace`, [name])
   }
 
