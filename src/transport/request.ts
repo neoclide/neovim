@@ -2,7 +2,6 @@ import Connection from './connection'
 import { NeovimClient } from '../api'
 import { createLogger } from '../utils/logger'
 const logger = createLogger('request')
-const debug = process.env.NODE_CLIENT_LOG_LEVEL == 'debug'
 const func = process.env.COC_NVIM == '1' ? 'coc#api#call' : 'nvim#api#call'
 
 export default class Request {
@@ -23,9 +22,6 @@ export default class Request {
 
   public callback(client: NeovimClient, err: any, result: any): void {
     let { method, cb } = this
-    if (debug && err) {
-      logger.debug(`request ${this.method} error:`, err, this.args)
-    }
     if (err) return cb([0, err.toString()])
     switch (method) {
       case 'nvim_list_wins':
