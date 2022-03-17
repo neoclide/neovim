@@ -93,13 +93,32 @@ export interface HighlightItem {
    * 0 based
    */
   colEnd: number
-
   /**
    * See :h prop_type_add on vim8
    */
   combine?: boolean
   start_incl?: boolean
   end_incl?: boolean
+}
+
+export interface VimHighlightItem {
+  hlGroup: string
+  /**
+   * 0 based
+   */
+  lnum: number
+  /**
+   * 0 based
+   */
+  colStart: number
+  /**
+   * 0 based
+   */
+  colEnd: number
+  /**
+   * Extmark id
+   */
+  id?: number
 }
 
 export interface HighlightOption {
@@ -523,20 +542,24 @@ export class Buffer extends BaseApi {
   }
 
   /**
-   * Get highlight items by name space (end exclusive).
+   * Get highlight items by name space (end inclusive).
    *
-   * @param {string | number} ns Namespace key or id.
+   * @param {string} ns Namespace key.
    * @param {number} start 0 based line number.
    * @param {number} end 0 based line number.
    * @returns {Promise<HighlightItem[]>}
    */
-  public async getHighlights(ns: string | number, start = 0, end = -1): Promise<Omit<HighlightItem, 'start_incl' | 'end_incl' | 'combine'>[]> {
-    let res: HighlightItem[] = []
-    let obj = await this.client.call('coc#highlight#get', [this.id, ns, start, end])
-    for (let arr of Object.values(obj)) {
-      if (Array.isArray(arr)) {
-        res.push(...arr)
-      }
+  public async getHighlights(ns: string, start = 0, end = -1): Promise<VimHighlightItem[]> {
+    let res: VimHighlightItem[] = []
+    let arr = await this.client.call('coc#highlight#get_highlights', [this.id, ns, start, end]) as [string, number, number, number, number?][]
+    for (let item of arr) {
+      res.push({
+        hlGroup: item[0],
+        lnum: item[1],
+        colStart: item[2],
+        colEnd: item[3],
+        id: item[4]
+      })
     }
     return res
   }
@@ -551,7 +574,7 @@ export class Buffer extends BaseApi {
    */
   public updateHighlights(ns: string, highlights: HighlightItem[], opts: HighlightOption = {}): void {
     if (typeof opts === 'number') {
-      this.client.logError('Call of buffer.updateHighlights need updated to use options.', new Error().stack)
+      this.client.logError('Bad option for buffer.updateHighlights()', new Error().stack)
       return
     }
     let start = typeof opts.start === 'number' ? opts.start : 0
