@@ -298,8 +298,11 @@ export class NeovimClient extends Neovim {
   }
 
   public pauseNotification(): void {
-    this.transport.pauseNotification()
     let stack = Error().stack
+    if (this.transport.pauseLevel != 0) {
+      this.logError(`Nested nvim.pauseNotification() detected, please avoid it:`, stack)
+    }
+    this.transport.pauseNotification()
     process.nextTick(() => {
       if (this.transport.pauseLevel > 0) {
         this.logError(`resumeNotification not called within same tick:`, stack)
