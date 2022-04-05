@@ -213,10 +213,10 @@ export class Buffer extends BaseApi {
   public setLines(lines: string | string[], opts: BufferSetLines): Promise<void>
   public setLines(lines: string | string[], opts: BufferSetLines, notify: true): void
   public setLines(lines: string | string[], opts: BufferSetLines, notify = false) {
-    let { start, end, strictIndexing } = opts
-    start = typeof start !== 'undefined' ? start : 0
-    end = typeof end !== 'undefined' ? end : start + 1
-    const indexing = typeof strictIndexing === 'undefined' ? true : strictIndexing
+    let { start, end, strictIndexing } = opts ?? {}
+    start = start ?? 0
+    end = end ?? start + 1
+    const indexing = strictIndexing ?? true
     const method = notify ? 'notify' : 'request'
     return this[method](`${this.prefix}set_lines`, [
       start,
