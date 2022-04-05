@@ -210,27 +210,19 @@ export class Buffer extends BaseApi {
   }
 
   /** Set lines of buffer given indeces */
-  setLines(
-    _lines: string | string[],
-    { start: _start, end: _end, strictIndexing }: BufferSetLines = {
-      strictIndexing: true,
-    },
-    notify = false
-  ) {
-    // TODO: Error checking
-    // if (typeof start === 'undefined' || typeof end === 'undefined') {
-    // }
-    const indexing =
-      typeof strictIndexing === 'undefined' ? true : strictIndexing
-    const lines = typeof _lines === 'string' ? [_lines] : _lines
-    const end = typeof _end !== 'undefined' ? _end : _start + 1
+  public setLines(lines: string | string[], opts: BufferSetLines): Promise<void>
+  public setLines(lines: string | string[], opts: BufferSetLines, notify: true): void
+  public setLines(lines: string | string[], opts: BufferSetLines, notify = false) {
+    let { start, end, strictIndexing } = opts
+    start = typeof start !== 'undefined' ? start : 0
+    end = typeof end !== 'undefined' ? end : start + 1
+    const indexing = typeof strictIndexing === 'undefined' ? true : strictIndexing
     const method = notify ? 'notify' : 'request'
-
     return this[method](`${this.prefix}set_lines`, [
-      _start,
+      start,
       end,
       indexing,
-      lines,
+      typeof lines === 'string' ? [lines] : lines
     ])
   }
 
