@@ -3,7 +3,7 @@
  */
 import { NvimTransport } from '../transport/nvim'
 import { VimTransport } from '../transport/vim'
-import { VimValue } from '../types'
+import { AtomicResult, VimValue } from '../types'
 import { Neovim } from './Neovim'
 import { Buffer } from './Buffer'
 import { Window } from './Window'
@@ -54,14 +54,14 @@ export class NeovimClient extends Neovim {
     this.handleNotification = this.handleNotification.bind(this)
   }
 
-  public echoError(msg: string | Error): void {
+  public echoError(msg: unknown): void {
     let prefix = process.env.COC_NVIM == '1' ? '[coc.nvim] ' : ''
-    if (typeof msg === 'string') {
-      this.errWriteLine(prefix + msg)
-      this.logError(msg, Error().stack)
-    } else {
+    if (msg instanceof Error) {
       this.errWriteLine(prefix + msg.message + ' use :CocOpenLog for details')
       this.logError(msg.message || 'Unknown error', msg.stack)
+    } else {
+      this.errWriteLine(prefix + msg)
+      this.logError(msg.toString(), Error().stack)
     }
   }
 
@@ -310,14 +310,17 @@ export class NeovimClient extends Neovim {
     })
   }
 
-  public resumeNotification(redrawVim?: boolean, notify?: boolean): Promise<any> {
+  public resumeNotification(redrawVim?: boolean): Promise<AtomicResult>
+  public resumeNotification(redrawVim: boolean, notify: true): null
+  public resumeNotification(redrawVim?: boolean, notify?: boolean): Promise<AtomicResult> | null {
     if (isVim && redrawVim) {
       this.transport.notify('nvim_command', ['redraw'])
     }
     if (notify) {
-      return Promise.resolve(this.transport.resumeNotification(true))
+      this.transport.resumeNotification(true)
+      return Promise.resolve(null)
     }
-    return Promise.resolve(this.transport.resumeNotification())
+    return this.transport.resumeNotification()
   }
 
   public hasFunction(name: string): boolean {

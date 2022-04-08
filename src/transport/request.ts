@@ -6,7 +6,6 @@ const func = process.env.COC_NVIM == '1' ? 'coc#api#call' : 'nvim#api#call'
 
 export default class Request {
   private method: string
-  private args: any[]
   constructor(
     private connection: Connection,
     private cb: Function,
@@ -16,7 +15,6 @@ export default class Request {
 
   public request(method: string, args: any[] = []): void {
     this.method = method
-    this.args = args
     this.connection.call(func, [method.slice(5), args], this.id)
   }
 

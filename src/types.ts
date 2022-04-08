@@ -66,3 +66,5 @@ export type VimValue =
   | string
   | number[]
   | { [key: string]: any }
+
+export type AtomicResult = [VimValue[], null | [number, string, string]]

@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events'
 import { createLogger, ILogger } from '../utils/logger'
 import { NeovimClient } from '../api'
+import { AtomicResult } from '../types'
 const debug = process.env.NODE_CLIENT_LOG_LEVEL == 'debug'
 const logger = createLogger('transport')
 
@@ -52,17 +53,17 @@ export default abstract class Transport extends EventEmitter {
     }
   }
 
-  public resumeNotification(): Promise<void>
+  public resumeNotification(): Promise<AtomicResult>
   public resumeNotification(isNotify: true): null
-  public resumeNotification(isNotify = false): Promise<any> | null {
+  public resumeNotification(isNotify = false): Promise<AtomicResult> | null {
     let { pauseLevel } = this
-    if (pauseLevel == 0) return isNotify ? null : Promise.resolve([null, null])
+    if (pauseLevel == 0) return isNotify ? null : Promise.resolve([[], null])
     let stack = Error().stack
     this.pauseLevel = pauseLevel - 1
     let list = this.paused.get(pauseLevel)
     this.paused.delete(pauseLevel)
     if (list && list.length) {
-      return new Promise<void>((resolve, reject) => {
+      return new Promise<AtomicResult | undefined>((resolve, reject) => {
         if (!isNotify) {
           return this.request('nvim_call_atomic', [list], (err, res) => {
             if (err) {
@@ -73,13 +74,17 @@ export default abstract class Transport extends EventEmitter {
             if (Array.isArray(res) && res[1] != null) {
               let [index, errType, message] = res[1]
               let [fname, args] = list[index]
-              this.logger.error(`request error ${errType} on "${fname}"`, args, message, stack)
+              let e = new Error(`call_atomic request error on "${fname}": ${message}`)
+              e.stack = stack
+              this.logger.error(`call_atomic request error ${errType} on "${fname}"`, args, message, stack)
+              return reject(e)
+
             }
             resolve(res)
           })
         }
         this.notify('nvim_call_atomic', [list])
-        resolve()
+        resolve(undefined)
       })
     }
     return isNotify ? null : Promise.resolve([[], undefined])
