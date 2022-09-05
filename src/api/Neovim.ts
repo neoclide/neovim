@@ -153,7 +153,7 @@ export class Neovim extends BaseApi {
   }
 
   /** Set current line */
-  public setLine(line: string): Promise<any> {
+  public setLine(line: string): Promise<void> {
     return this.request(`${this.prefix}set_current_line`, [line])
   }
 
@@ -198,7 +198,7 @@ export class Neovim extends BaseApi {
   }
 
   /** Delete current line in buffer */
-  public deleteCurrentLine(): Promise<any> {
+  public deleteCurrentLine(): Promise<void> {
     return this.request(`${this.prefix}del_current_line`)
   }
 
@@ -208,7 +208,7 @@ export class Neovim extends BaseApi {
    * generic error; v:errmsg is not updated.
    *
    */
-  public eval(expr: string): Promise<VimValue> {
+  public eval(expr: string): Promise<unknown> {
     return this.request(`${this.prefix}eval`, [expr])
   }
 
@@ -216,12 +216,12 @@ export class Neovim extends BaseApi {
    * Executes lua, it's possible neovim client does not support this
    * Make sure `nvim.hasFunction('nvim-exec_lua')` returns `true`
    */
-  public lua(code: string, args: VimValue[] = []): Promise<object> {
+  public lua(code: string, args: VimValue[] = []): Promise<unknown> {
     return this.request(`${this.prefix}exec_lua`, [code, args])
   }
 
   // Alias for `lua()` to be consistent with neovim API
-  public executeLua(code: string, args: VimValue[] = []): Promise<object> {
+  public executeLua(code: string, args: VimValue[] = []): Promise<unknown> {
     const _args = this.getArgs(args)
     return this.lua(code, _args)
   }
@@ -240,9 +240,9 @@ export class Neovim extends BaseApi {
   }
 
   /** Call a vim function */
-  public call(fname: string, args?: VimValue | VimValue[]): Promise<any>
+  public call(fname: string, args?: VimValue | VimValue[]): Promise<unknown>
   public call(fname: string, args: VimValue | VimValue[], isNotify: true): null
-  public call(fname: string, args: VimValue | VimValue[] = [], isNotify?: boolean): Promise<any | null> {
+  public call(fname: string, args: VimValue | VimValue[] = [], isNotify?: boolean): Promise<unknown | null> {
     const _args = this.getArgs(args)
     if (isNotify) {
       this.notify(`${this.prefix}call_function`, [fname, _args])
@@ -271,13 +271,13 @@ export class Neovim extends BaseApi {
     return this.request(`${this.prefix}call_function`, ['coc#util#timer', [fname, _args]])
   }
 
-  public callAsync(fname: string, args: VimValue | VimValue[] = []): Promise<any> {
+  public callAsync(fname: string, args: VimValue | VimValue[] = []): Promise<unknown> {
     const _args = this.getArgs(args)
     return this.client.sendAsyncRequest(fname, _args)
   }
 
   /** Alias for `call` */
-  public callFunction(fname: string, args: VimValue | VimValue[] = []): Promise<any> | null {
+  public callFunction(fname: string, args: VimValue | VimValue[] = []): Promise<unknown> | null {
     return this.call(fname, args)
   }
 
@@ -287,9 +287,9 @@ export class Neovim extends BaseApi {
   }
 
   /** Runs a vim command */
-  public command(arg: string): Promise<any>
+  public command(arg: string): Promise<void>
   public command(arg: string, isNotify: true): null
-  public command(arg: string, isNotify?: boolean): Promise<any> | null {
+  public command(arg: string, isNotify?: boolean): Promise<void> | null {
     if (isNotify) {
       this.notify(`${this.prefix}command`, [arg])
       return null
@@ -320,7 +320,7 @@ export class Neovim extends BaseApi {
   }
 
   /** feedKeys */
-  public feedKeys(keys: string, mode: string, escapeCsi: boolean): Promise<any> {
+  public feedKeys(keys: string, mode: string, escapeCsi: boolean): Promise<void> {
     return this.request(`${this.prefix}feedkeys`, [keys, mode, escapeCsi])
   }
 
