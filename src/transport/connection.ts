@@ -1,21 +1,45 @@
 import Emitter from 'events'
-import readline from 'readline'
 import { createLogger } from '../utils/logger'
 const logger = createLogger('connection')
+const NR_CODE = 10
 
 // vim connection by using channel feature
 export default class Connection extends Emitter {
   constructor(
-    private readable: NodeJS.ReadableStream,
+    readable: NodeJS.ReadableStream,
     private writeable: NodeJS.WritableStream) {
     super()
-    const rl = readline.createInterface(this.readable)
-    rl.on('line', (line: string) => {
-      this.parseData(line)
+    let cached: Buffer[] = []
+    let hasCache = false
+    readable.once('data', buf => {
+      if (!Buffer.isBuffer(buf)) throw new Error(`Vim connection expect buffer from readable stream.`)
     })
-    rl.on('close', () => {
-      logger.error('connection closed')
-      process.exit(0)
+    // should be utf8 encoding.
+    readable.on('data', (buf: Buffer) => {
+      let start = 0
+      let len = buf.byteLength
+      for (let i = 0; i < len; i++) {
+        if (buf[i] === NR_CODE) { // '\n'
+          let b = buf.slice(start, i)
+          if (hasCache) {
+            cached.push(b)
+            let concated = Buffer.concat(cached)
+            hasCache = false
+            cached = []
+            this.parseData(concated.toString('utf8'))
+          } else {
+            this.parseData(b.toString('utf8'))
+          }
+          start = i + 1
+        }
+      }
+      if (start < len) {
+        cached.push(start == 0 ? buf : buf.slice(start))
+        hasCache = true
+      }
+    })
+    readable.on('close', () => {
+      logger.warn('readable stream closed.')
     })
   }
 
