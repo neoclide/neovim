@@ -138,7 +138,7 @@ export class Window extends BaseApi {
       this.client.call('coc#highlight#match_ranges', [this.id, 0, ranges, hlGroup, priority], true)
       return undefined
     }
-    return this.client.call('coc#highlight#match_ranges', [this.id, 0, ranges, hlGroup, priority])
+    return this.client.call('coc#highlight#match_ranges', [this.id, 0, ranges, hlGroup, priority]) as Promise<number[]>
   }
 
   /**
