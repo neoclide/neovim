@@ -37,7 +37,7 @@
     "msgpack-lite": "^0.1.26"
   },
   "devDependencies": {
-    "@types/jest": "^27.4.0",
+    "@types/jest": "^29.2.2",
     "@types/msgpack-lite": "^0.1.8",
     "@types/node": "^17.0.14",
     "@types/which": "^2.0.1",

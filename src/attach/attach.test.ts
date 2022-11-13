@@ -1,7 +1,9 @@
 import * as cp from 'child_process'
 // eslint-disable-next-line import/no-extraneous-dependencies
 import * as which from 'which'
+import { Neovim } from '../api'
 import { attach } from './attach'
+// import { pack, Packr, addExtension } from 'msgpackr'
 
 try {
   which.sync('nvim')
@@ -16,11 +18,11 @@ try {
 
 describe('Nvim Promise API', () => {
   let proc
-  let nvim
+  let nvim: Neovim
   let requests
   let notifications
 
-  beforeAll(async done => {
+  beforeAll(async () => {
     try {
       proc = cp.spawn(
         'nvim',
@@ -39,7 +41,6 @@ describe('Nvim Promise API', () => {
         notifications.push({ method, args })
       })
 
-      done()
     } catch (err) {
       // eslint-disable-next-line no-console
       console.log(err)
@@ -48,7 +49,7 @@ describe('Nvim Promise API', () => {
 
   afterAll(() => {
     nvim.quit()
-    if (proc) {
+    if (proc && typeof proc.disconnect === 'function') {
       proc.disconnect()
     }
   })
@@ -57,6 +58,32 @@ describe('Nvim Promise API', () => {
     requests = []
     notifications = []
   })
+
+  // it('can pack data', async () => {
+  //   addExtension({
+  //     Class: Buffer,
+  //     type: 0,
+  //     write(instance) {
+  //       console.log(33)
+  //       return instance.id
+  //     },
+  //     read(data) {
+  //       return new Buffer({
+  //         transport: undefined,
+  //         client: undefined,
+  //         data,
+  //       })
+  //     }
+  //   })
+  //   let packer = new Packr({
+  //     useRecords: false,
+  //     encodeUndefinedAsNil: false,
+  //     moreTypes: false
+  //   })
+  //   let b = new Buffer({ data: 3 })
+  //   let buf = packer.encode([b])
+  //   console.log(buf)
+  // })
 
   it('can send requests and receive response', async () => {
     const result = await nvim.eval('{"k1": "v1", "k2": 2}')
@@ -101,11 +128,11 @@ describe('Nvim Promise API', () => {
     const buf = await nvim.buffer
     expect(buf instanceof nvim.Buffer).toEqual(true)
 
-    const lines = await buf.getLines({ start: 0, end: -1 })
-    expect(lines).toEqual([''])
+    const lines = await buf.getLines({ start: 0, end: -1, strictIndexing: false })
+    expect(lines).toEqual([])
 
     buf.setLines(['line1', 'line2'], { start: 0, end: 1 })
-    const newLines = await buf.getLines({ start: 0, end: -1 })
+    const newLines = await buf.getLines({ start: 0, end: -1, strictIndexing: false })
     expect(newLines).toEqual(['line1', 'line2'])
   })
 

@@ -1,13 +1,16 @@
 import { Transform } from 'stream'
 
+const MIN_SIZE = Buffer.poolSize
+const waterMark = 10 * 1024 * 1024
+
 export default class Buffered extends Transform {
   private chunks: Buffer[] | null
   private timer: NodeJS.Timer | null
   constructor() {
     super({
-      readableHighWaterMark: 10 * 1024 * 1024,
-      writableHighWaterMark: 10 * 1024 * 1024,
-    } as any)
+      readableHighWaterMark: waterMark,
+      writableHighWaterMark: waterMark
+    })
     this.chunks = null
     this.timer = null
   }
@@ -16,18 +19,14 @@ export default class Buffered extends Transform {
     const { chunks } = this
     if (chunks) {
       this.chunks = null
-      const buf = Buffer.concat(chunks)
-      this.push(buf)
+      this.push(Buffer.concat(chunks))
     }
   }
 
   // eslint-disable-next-line consistent-return
   _transform(chunk: Buffer, _encoding: any, callback: any): void {
     const { chunks, timer } = this
-    const MIN_SIZE = Buffer.poolSize
-
     if (timer) clearTimeout(timer)
-
     if (chunk.length < MIN_SIZE) {
       if (!chunks) return callback(null, chunk)
       chunks.push(chunk)
