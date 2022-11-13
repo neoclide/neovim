@@ -4,13 +4,12 @@
 import { NvimTransport } from '../transport/nvim'
 import { VimTransport } from '../transport/vim'
 import { AtomicResult, VimValue } from '../types'
-import { Neovim } from './Neovim'
+import { ILogger } from '../utils/logger'
 import { Buffer } from './Buffer'
-import { Window } from './Window'
+import { Neovim } from './Neovim'
 import { Tabpage } from './Tabpage'
-import { createLogger, ILogger } from '../utils/logger'
+import { Window } from './Window'
 
-const logger = createLogger('client')
 const isVim = process.env.VIM_NODE_RPC == '1'
 
 export type Callback = (err?: Error | null, res?: any) => void
@@ -58,10 +57,10 @@ export class NeovimClient extends Neovim {
     let prefix = process.env.COC_NVIM == '1' ? '[coc.nvim] ' : ''
     if (msg instanceof Error) {
       this.errWriteLine(prefix + msg.message + ' use :CocOpenLog for details')
-      this.logError(msg.message || 'Unknown error', msg.stack)
+      this.logError(msg.message || 'Unknown error', msg)
     } else {
       this.errWriteLine(prefix + msg)
-      this.logError(msg.toString(), Error().stack)
+      this.logError(msg.toString(), new Error())
     }
   }
 
@@ -228,7 +227,10 @@ export class NeovimClient extends Neovim {
       this.transport.removeAllListeners('detach')
     })
     if (requestApi) {
-      this._isReady = this.generateApi()
+      this._isReady = this.generateApi().catch(err => {
+        this.logger.error(err)
+        return false
+      })
     } else {
       this._channelId = 0
       this._isReady = Promise.resolve(true)
@@ -252,29 +254,11 @@ export class NeovimClient extends Neovim {
   }
 
   private async generateApi(): Promise<null | boolean> {
-    let results
-
-    try {
-      results = await this.requestApi()
-    } catch (err) {
-      // tslint:disable-next-line: no-console
-      console.error('Could not get vim api results')
-      logger.error(err)
-    }
-
-    if (results) {
-      try {
-        const [channelId, metadata] = results
-        this.functions = metadata.functions.map(f => f.name)
-        this._channelId = channelId
-        return true
-      } catch (err) {
-        logger.error(err.stack)
-        return null
-      }
-    }
-
-    return null
+    let results = await this.requestApi()
+    const [channelId, metadata] = results
+    this.functions = metadata.functions.map(f => f.name)
+    this._channelId = channelId
+    return true
   }
 
   public attachBufferEvent(buffer: Buffer, eventName: string, cb: Function): void {
@@ -298,14 +282,15 @@ export class NeovimClient extends Neovim {
   }
 
   public pauseNotification(): void {
-    let stack = Error().stack
+    let o: any = {}
+    Error.captureStackTrace(o)
     if (this.transport.pauseLevel != 0) {
-      this.logError(`Nested nvim.pauseNotification() detected, please avoid it:`, stack)
+      this.logError(`Nested nvim.pauseNotification() detected, please avoid it:`, o.stack)
     }
     this.transport.pauseNotification()
     process.nextTick(() => {
       if (this.transport.pauseLevel > 0) {
-        this.logError(`resumeNotification not called within same tick:`, stack)
+        this.logError(`resumeNotification not called within same tick:`, o.stack)
       }
     })
   }

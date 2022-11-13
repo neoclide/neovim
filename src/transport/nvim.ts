@@ -1,5 +1,4 @@
 import * as msgpack from 'msgpack-lite'
-
 import Buffered from '../utils/buffered'
 import { Metadata } from '../api/types'
 import Transport, { Response } from './base'
@@ -130,13 +129,8 @@ export class NvimTransport extends Transport {
         codec: this.codec,
       })
     )
-    let stack = Error().stack
-    let timer = setTimeout(() => {
-      this.info(`request to vim blocked more than 1s: ${method}`, args, stack)
-    }, 1000)
     this.pending.set(id, (err, res) => {
-      clearTimeout(timer)
-      this.debug('response of nvim:', id, `${Date.now() - startTs}ms`, res, err)
+      this.debug('response of nvim:', id, Date.now() - startTs, res, err)
       cb(err, res)
     })
   }

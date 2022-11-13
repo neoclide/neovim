@@ -579,7 +579,7 @@ export class Buffer extends BaseApi {
    */
   public updateHighlights(ns: string, highlights: HighlightItem[], opts: HighlightOption = {}): void {
     if (typeof opts === 'number') {
-      this.client.logError('Bad option for buffer.updateHighlights()', new Error().stack)
+      this.client.logError('Bad option for buffer.updateHighlights()', new Error())
       return
     }
     let start = typeof opts.start === 'number' ? opts.start : 0

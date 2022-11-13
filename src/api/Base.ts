@@ -47,14 +47,15 @@ export class BaseApi extends EventEmitter {
   }
 
   public async request(name: string, args: any[] = []): Promise<any> {
-    let stack = Error().stack
+    Error.captureStackTrace(args)
     return new Promise<any>((resolve, reject) => {
       this.transport.request(name, this.getArgsByPrefix(args), (err: any, res: any) => {
         if (err) {
-          let e = new Error(`${err[1].split(/\r?\n/)[0]}`)
-          e.stack = `Error: request error on ${name} - ${err[1]}\n` + stack.split(/\r?\n/).slice(3).join('\n')
+          let e = new Error(err[1])
           if (!name.endsWith('get_var')) {
-            this.client.logError(`request error on "${name}"`, args, err[1], stack)
+            let stack = (args as any).stack
+            e.stack = `Error: request error on ${name} - ${err[1]}\n` + stack.split(/\r?\n/).slice(3).join('\n')
+            this.client.logError(`request error on "${name}"`, args, e)
           }
           reject(e)
         } else {
