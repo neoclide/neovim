@@ -14,6 +14,88 @@ const isVim = process.env.VIM_NODE_RPC == '1'
 
 export type Callback = (err?: Error | null, res?: any) => void
 
+const functionsOnVim = [
+  'nvim_buf_attach',
+  'nvim_get_mode',
+  'nvim_list_runtime_paths',
+  'nvim_win_del_var',
+  'nvim_tabpage_list_wins',
+  'nvim_buf_del_var',
+  'nvim_buf_get_mark',
+  'nvim_tabpage_set_var',
+  'nvim_create_namespace',
+  'nvim_win_get_position',
+  'nvim_win_set_height',
+  'nvim_call_atomic',
+  'nvim_buf_detach',
+  'nvim_buf_line_count',
+  'nvim_set_current_buf',
+  'nvim_set_current_dir',
+  'nvim_get_var',
+  'nvim_del_current_line',
+  'nvim_win_set_width',
+  'nvim_out_write',
+  'nvim_win_is_valid',
+  'nvim_set_current_win',
+  'nvim_get_current_tabpage',
+  'nvim_tabpage_is_valid',
+  'nvim_set_var',
+  'nvim_win_get_height',
+  'nvim_win_get_buf',
+  'nvim_win_get_width',
+  'nvim_buf_set_name',
+  'nvim_subscribe',
+  'nvim_get_current_win',
+  'nvim_feedkeys',
+  'nvim_get_vvar',
+  'nvim_tabpage_get_number',
+  'nvim_get_current_buf',
+  'nvim_win_get_option',
+  'nvim_win_get_cursor',
+  'nvim_get_current_line',
+  'nvim_win_get_var',
+  'nvim_buf_get_var',
+  'nvim_set_current_tabpage',
+  'nvim_buf_clear_namespace',
+  'nvim_err_write',
+  'nvim_del_var',
+  'nvim_call_dict_function',
+  'nvim_set_current_line',
+  'nvim_get_api_info',
+  'nvim_unsubscribe',
+  'nvim_get_option',
+  'nvim_list_wins',
+  'nvim_set_client_info',
+  'nvim_win_set_cursor',
+  'nvim_win_set_option',
+  'nvim_eval',
+  'nvim_tabpage_get_var',
+  'nvim_buf_get_option',
+  'nvim_tabpage_del_var',
+  'nvim_buf_get_name',
+  'nvim_list_bufs',
+  'nvim_win_set_buf',
+  'nvim_win_close',
+  'nvim_command_output',
+  'nvim_command',
+  'nvim_tabpage_get_win',
+  'nvim_win_set_var',
+  'nvim_buf_add_highlight',
+  'nvim_buf_set_var',
+  'nvim_win_get_number',
+  'nvim_strwidth',
+  'nvim_buf_set_lines',
+  'nvim_err_writeln',
+  'nvim_buf_set_option',
+  'nvim_list_tabpages',
+  'nvim_set_option',
+  'nvim_buf_get_lines',
+  'nvim_buf_get_changedtick',
+  'nvim_win_get_tabpage',
+  'nvim_call_function',
+  'nvim_buf_is_valid'
+]
+
 export class AsyncResponse {
   private finished = false
   constructor(public readonly requestId: number, private cb: Callback) {
@@ -37,7 +119,6 @@ export class NeovimClient extends Neovim {
   private responses: Map<number, AsyncResponse> = new Map()
   private _channelId: number
   private attachedBuffers: Map<number, Map<string, Function[]>> = new Map()
-  private functions: string[]
   public readonly isVim = isVim
 
   constructor(private logger: ILogger) {
@@ -256,7 +337,8 @@ export class NeovimClient extends Neovim {
   private async generateApi(): Promise<null | boolean> {
     let results = await this.requestApi()
     const [channelId, metadata] = results
-    this.functions = metadata.functions.map(f => f.name)
+    // TODO metadata not used
+    // this.functions = metadata.functions.map(f => f.name)
     this._channelId = channelId
     return true
   }
@@ -308,8 +390,11 @@ export class NeovimClient extends Neovim {
     return this.transport.resumeNotification()
   }
 
+  /**
+   * @deprecated
+   */
   public hasFunction(name: string): boolean {
-    if (!this.functions) return true
-    return this.functions.includes(name)
+    if (!isVim) return true
+    return functionsOnVim.includes(name)
   }
 }
