@@ -21,17 +21,21 @@ export interface VirtualTextOption {
    */
   hl_mode?: 'combine' | 'replace' | 'blend'
   /**
+   * nvim and vim.
+   */
+  text_align?: 'after' | 'right' | 'below' | 'above'
+  /**
    * neovim only
    */
   virt_text_win_col?: number
   /**
    * vim9 only
    */
-  text_align?: 'after' | 'right' | 'below'
-  /**
-   * vim9 only
-   */
   text_wrap?: 'wrap' | 'truncate'
+  /**
+   * Add line indent when text_align is below or above.
+   */
+  indent?: boolean
 }
 
 export interface ExtmarkOptions {
