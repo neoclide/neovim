@@ -15,6 +15,9 @@ export interface BufferHighlight {
 }
 
 export interface VirtualTextOption {
+  /**
+   * Used on vim9 only.
+   */
   col?: number
   /**
    * highlight mode
