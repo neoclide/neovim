@@ -11,6 +11,7 @@ import { Tabpage } from './Tabpage'
 import { Window } from './Window'
 
 const isVim = process.env.VIM_NODE_RPC == '1'
+const tester = process.env.COC_TESTER == '1'
 
 export type Callback = (err?: Error | null, res?: any) => void
 
@@ -137,15 +138,16 @@ export class NeovimClient extends Neovim {
   public echoError(msg: unknown): void {
     let prefix = process.env.COC_NVIM == '1' ? '[coc.nvim] ' : ''
     if (msg instanceof Error) {
-      this.errWriteLine(prefix + msg.message + ' use :CocOpenLog for details')
+      if (!tester) this.errWriteLine(prefix + msg.message + ' use :CocOpenLog for details')
       this.logError(msg.message || 'Unknown error', msg)
     } else {
-      this.errWriteLine(prefix + msg)
+      if (!tester) this.errWriteLine(prefix + msg)
       this.logError(msg.toString(), new Error())
     }
   }
 
   public logError(msg: string, ...args: any[]): void {
+    if (tester) console.error(msg, ...args)
     if (!this.logger) return
     this.logger.error(msg, ...args)
   }
@@ -281,6 +283,7 @@ export class NeovimClient extends Neovim {
       }
       if (method === 'nvim_error_event') {
         this.logger.error(`Error event from nvim:`, args[0], args[1])
+        this.emit('vim_error', args[1])
         return
       }
       this.logger.debug(`Unhandled event: ${method}`, args)
