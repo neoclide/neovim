@@ -1,8 +1,7 @@
-import Connection from './connection'
 import { NeovimClient } from '../api'
-import { createLogger } from '../utils/logger'
-const logger = createLogger('request')
-const func = process.env.COC_NVIM == '1' ? 'coc#api#call' : 'nvim#api#call'
+import { isCocNvim } from '../utils/constants'
+import Connection from './connection'
+const func = isCocNvim ? 'coc#api#call' : 'nvim#api#call'
 
 export default class Request {
   private method: string

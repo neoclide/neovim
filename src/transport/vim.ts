@@ -3,6 +3,7 @@ import Connection from './connection'
 import { NeovimClient } from '../api'
 import Request from './request'
 import { ILogger } from '../utils/logger'
+import { isCocNvim } from '../utils/constants'
 
 export class VimTransport extends Transport {
   private pending: Map<number, Request> = new Map()
@@ -22,7 +23,7 @@ export class VimTransport extends Transport {
 
   constructor(logger: ILogger) {
     super(logger)
-    this.notifyMethod = process.env.COC_NVIM == '1' ? 'coc#api#notify' : 'nvim#api#notify'
+    this.notifyMethod = isCocNvim ? 'coc#api#notify' : 'nvim#api#notify'
   }
 
   public attach(

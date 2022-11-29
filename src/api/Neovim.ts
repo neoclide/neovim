@@ -4,7 +4,7 @@ import { Buffer } from './Buffer'
 import { Tabpage } from './Tabpage'
 import { Window } from './Window'
 import { FloatOptions } from './types'
-const isVim = process.env.VIM_NODE_RPC == '1'
+import { isCocNvim, isVim } from '../utils/constants'
 
 export interface UiAttachOptions {
   rgb?: boolean
@@ -71,7 +71,7 @@ export class Neovim extends BaseApi {
   }
 
   public createNamespace(name = ""): Promise<number> {
-    if (process.env.COC_NVIM == '1') {
+    if (isCocNvim) {
       name = name.startsWith('coc-') ? name.slice(4) : name
       return this.request(`${this.prefix}call_function`, ['coc#highlight#create_namespace', [name]])
     }

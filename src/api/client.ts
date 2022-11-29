@@ -4,14 +4,12 @@
 import { NvimTransport } from '../transport/nvim'
 import { VimTransport } from '../transport/vim'
 import { AtomicResult, VimValue } from '../types'
+import { isCocNvim, isTester, isVim } from '../utils/constants'
 import { ILogger } from '../utils/logger'
 import { Buffer } from './Buffer'
 import { Neovim } from './Neovim'
 import { Tabpage } from './Tabpage'
 import { Window } from './Window'
-
-const isVim = process.env.VIM_NODE_RPC == '1'
-const tester = process.env.COC_TESTER == '1'
 
 export type Callback = (err?: Error | null, res?: any) => void
 
@@ -136,18 +134,18 @@ export class NeovimClient extends Neovim {
   }
 
   public echoError(msg: unknown): void {
-    let prefix = process.env.COC_NVIM == '1' ? '[coc.nvim] ' : ''
+    let prefix = isCocNvim ? '[coc.nvim] ' : ''
     if (msg instanceof Error) {
-      if (!tester) this.errWriteLine(prefix + msg.message + ' use :CocOpenLog for details')
+      if (!isTester) this.errWriteLine(prefix + msg.message + ' use :CocOpenLog for details')
       this.logError(msg.message || 'Unknown error', msg)
     } else {
-      if (!tester) this.errWriteLine(prefix + msg)
+      if (!isTester) this.errWriteLine(prefix + msg)
       this.logError(msg.toString(), new Error())
     }
   }
 
   public logError(msg: string, ...args: any[]): void {
-    if (tester) console.error(msg, ...args)
+    if (isTester) console.error(msg, ...args)
     if (!this.logger) return
     this.logger.error(msg, ...args)
   }

@@ -1,8 +1,8 @@
 import { EventEmitter } from 'events'
 import Transport from '../transport/base'
 import { VimValue } from '../types'
+import { isVim } from '../utils/constants'
 import { NeovimClient } from './client'
-const isVim = process.env.VIM_NODE_RPC == '1'
 
 export interface BaseConstructorOptions {
   transport?: Transport
