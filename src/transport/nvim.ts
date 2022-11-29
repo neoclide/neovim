@@ -18,7 +18,7 @@ export class NvimTransport extends Transport {
   private client: any
 
   constructor(logger: ILogger) {
-    super(logger)
+    super(logger, false)
 
     const codec = this.setupCodec()
     this.encodeStream = msgpack.createEncodeStream({ codec })

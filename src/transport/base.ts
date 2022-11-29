@@ -13,7 +13,7 @@ export default abstract class Transport extends EventEmitter {
   public pauseLevel = 0
   protected paused: Map<number, [string, any[]][]> = new Map()
 
-  constructor(protected logger: ILogger) {
+  constructor(protected logger: ILogger, public readonly isVim: boolean) {
     super()
   }
 

@@ -276,7 +276,6 @@ export class Buffer extends BaseApi {
    * @param {number} id - Extmark id
    */
   public deleteExtMark(ns_id: number, id: number): void {
-    if (this.client.isVim) return
     this.notify(`${this.prefix}del_extmark`, [
       ns_id,
       id,
@@ -292,7 +291,6 @@ export class Buffer extends BaseApi {
    * @returns {Promise<[] | [number, number] | [number, number, ExtmarkDetails]>}
    */
   public async getExtMarkById(ns_id: number, id: number, opts: { details?: boolean } = {}): Promise<[] | [number, number] | [number, number, ExtmarkDetails]> {
-    if (this.client.isVim) return Promise.resolve([])
     return this.request(`${this.prefix}get_extmark_by_id`, [ns_id, id, opts])
   }
 
@@ -314,7 +312,6 @@ export class Buffer extends BaseApi {
    * @returns {Promise<[number, number, number, ExtmarkDetails?][]>}
    */
   public async getExtMarks(ns_id: number, start: [number, number] | number, end: [number, number] | number, opts: { details?: boolean, limit?: number } = {}): Promise<[number, number, number, ExtmarkDetails?][]> {
-    if (this.client.isVim) return Promise.resolve([])
     return this.request(`${this.prefix}get_extmarks`, [ns_id, start, end, opts])
   }
 
@@ -328,7 +325,6 @@ export class Buffer extends BaseApi {
    * @returns {void}
    */
   public setExtMark(ns_id: number, line: number, col: number, opts: ExtmarkOptions = {}): void {
-    if (this.client.isVim) return
     this.notify(`${this.prefix}set_extmark`, [
       ns_id,
       line,

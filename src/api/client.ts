@@ -4,7 +4,7 @@
 import { NvimTransport } from '../transport/nvim'
 import { VimTransport } from '../transport/vim'
 import { AtomicResult, VimValue } from '../types'
-import { isCocNvim, isTester, isVim } from '../utils/constants'
+import { isCocNvim, isTester } from '../utils/constants'
 import { ILogger } from '../utils/logger'
 import { Buffer } from './Buffer'
 import { Neovim } from './Neovim'
@@ -118,9 +118,8 @@ export class NeovimClient extends Neovim {
   private responses: Map<number, AsyncResponse> = new Map()
   private _channelId: number
   private attachedBuffers: Map<number, Map<string, Function[]>> = new Map()
-  public readonly isVim = isVim
 
-  constructor(private logger: ILogger) {
+  constructor(private logger: ILogger, public readonly isVim: boolean) {
     // Neovim has no `data` or `metadata`
     super({})
     Object.defineProperty(this, 'client', {
@@ -182,7 +181,7 @@ export class NeovimClient extends Neovim {
    * Invoke redraw on vim.
    */
   public redrawVim(force?: boolean): void {
-    if (!isVim) return
+    if (!this.isVim) return
     this.transport.notify('nvim_command', ['redraw' + (force ? '!' : '')])
   }
 
@@ -381,7 +380,7 @@ export class NeovimClient extends Neovim {
   public resumeNotification(redrawVim?: boolean): Promise<AtomicResult>
   public resumeNotification(redrawVim: boolean, notify: true): null
   public resumeNotification(redrawVim?: boolean, notify?: boolean): Promise<AtomicResult> | null {
-    if (isVim && redrawVim) {
+    if (this.isVim && redrawVim) {
       this.transport.notify('nvim_command', ['redraw'])
     }
     if (notify) {
@@ -395,7 +394,7 @@ export class NeovimClient extends Neovim {
    * @deprecated
    */
   public hasFunction(name: string): boolean {
-    if (!isVim) return true
+    if (!this.isVim) return true
     return functionsOnVim.includes(name)
   }
 }

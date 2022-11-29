@@ -1,7 +1,6 @@
 import { EventEmitter } from 'events'
 import Transport from '../transport/base'
 import { VimValue } from '../types'
-import { isVim } from '../utils/constants'
 import { NeovimClient } from './client'
 
 export interface BaseConstructorOptions {
@@ -68,7 +67,7 @@ export class BaseApi extends EventEmitter {
   protected getArgsByPrefix(args: any[]): string[] {
     // Check if class is Neovim and if so, should not send `this` as first arg
     if (this.prefix !== 'nvim_' && args[0] != this) {
-      let id = isVim ? this.data : this
+      let id = this.transport.isVim ? this.data : this
       return [id, ...args]
     }
     return args

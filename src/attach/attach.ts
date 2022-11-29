@@ -45,7 +45,7 @@ export function attach({
   })
 
   if (writer && reader) {
-    neovim = new NeovimClient(logger)
+    neovim = new NeovimClient(logger, process.env.VIM_NODE_RPC == '1')
     neovim.attach({
       writer,
       reader,

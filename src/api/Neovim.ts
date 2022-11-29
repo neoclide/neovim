@@ -4,7 +4,7 @@ import { Buffer } from './Buffer'
 import { Tabpage } from './Tabpage'
 import { Window } from './Window'
 import { FloatOptions } from './types'
-import { isCocNvim, isVim } from '../utils/constants'
+import { isCocNvim } from '../utils/constants'
 
 export interface UiAttachOptions {
   rgb?: boolean
@@ -259,7 +259,7 @@ export class Neovim extends BaseApi {
       this.notify(`${this.prefix}call_function`, ['coc#util#timer', [fname, _args]])
       return null
     }
-    if (isVim) {
+    if (this.transport.isVim) {
       this.notify(`${this.prefix}call_function`, ['coc#util#timer', [fname, _args]])
       return new Promise(resolve => {
         setTimeout(() => {

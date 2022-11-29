@@ -22,7 +22,7 @@ export class VimTransport extends Transport {
   private outText = ''
 
   constructor(logger: ILogger) {
-    super(logger)
+    super(logger, true)
     this.notifyMethod = isCocNvim ? 'coc#api#notify' : 'nvim#api#notify'
   }
 
