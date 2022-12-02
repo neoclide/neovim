@@ -1,4 +1,4 @@
-import * as msgpack from 'msgpack-lite'
+import * as msgpack from '@chemzqm/msgpack-lite'
 import Buffered from '../utils/buffered'
 import { Metadata } from '../api/types'
 import Transport, { Response } from './base'
