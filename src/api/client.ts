@@ -313,7 +313,7 @@ export class NeovimClient extends Neovim {
         return false
       })
     } else {
-      this._channelId = 0
+      this._channelId = 1
       this._isReady = Promise.resolve(true)
     }
   }

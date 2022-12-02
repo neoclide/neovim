@@ -5,6 +5,7 @@ const NR_CODE = 10
 
 // vim connection by using channel feature
 export default class Connection extends Emitter {
+  private clean: () => void
   constructor(
     readable: NodeJS.ReadableStream,
     private writeable: NodeJS.WritableStream) {
@@ -15,7 +16,7 @@ export default class Connection extends Emitter {
       if (!Buffer.isBuffer(buf)) throw new Error(`Vim connection expect buffer from readable stream.`)
     })
     // should be utf8 encoding.
-    readable.on('data', (buf: Buffer) => {
+    let onData = (buf: Buffer) => {
       let start = 0
       let len = buf.byteLength
       for (let i = 0; i < len; i++) {
@@ -37,10 +38,16 @@ export default class Connection extends Emitter {
         cached.push(start == 0 ? buf : buf.slice(start))
         hasCache = true
       }
-    })
-    readable.on('close', () => {
+    }
+    readable.on('data', onData)
+    let onClose = () => {
       logger.warn('readable stream closed.')
-    })
+    }
+    readable.on('close', onClose)
+    this.clean = () => {
+      readable.off('data', onData)
+      readable.off('close', onClose)
+    }
   }
 
   private parseData(str: string): void {
@@ -106,6 +113,10 @@ export default class Connection extends Emitter {
   }
 
   public dispose(): void {
+    if (typeof this.clean === 'function') {
+      this.clean()
+      this.clean = undefined
+    }
     this.removeAllListeners()
   }
 }

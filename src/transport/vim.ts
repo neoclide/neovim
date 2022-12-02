@@ -73,6 +73,10 @@ export class VimTransport extends Transport {
     if (!this.attached) return
     this.attached = false
     this.connection.dispose()
+    for (let req of this.pending.values()) {
+      req.callback(this.client, 'connection disconnected', null)
+    }
+    this.pending.clear()
   }
 
   /**
@@ -84,12 +88,8 @@ export class VimTransport extends Transport {
     this.nextRequestId = this.nextRequestId - 1
     let startTs = Date.now()
     this.debug('request to vim:', id, method, args)
-    let timer = setTimeout(() => {
-      this.debug(`request to vim cost more than 1s`, method, args)
-    }, 1000)
     let req = new Request(this.connection, (err, res) => {
-      clearTimeout(timer)
-      this.debug(`response from vim cost:`, id, `${Date.now() - startTs}ms`)
+      if (!err) this.debug(`response from vim cost:`, id, `${Date.now() - startTs}ms`)
       cb(err, res)
     }, id)
     this.pending.set(id, req)
@@ -134,12 +134,8 @@ export class VimTransport extends Transport {
     let called = false
     let { connection } = this
     let startTs = Date.now()
-    let timer = setTimeout(() => {
-      this.debug(`request to client cost more than 1s`, requestId)
-    }, 1000)
     return {
       send: (resp: any, isError?: boolean): void => {
-        clearTimeout(timer)
         if (called || !this.attached) return
         called = true
         let err: string = null

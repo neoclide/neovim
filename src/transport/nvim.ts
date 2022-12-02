@@ -58,7 +58,7 @@ export class NvimTransport extends Transport {
         this.pending.delete(id)
         let err = msg[2]
         if (err && err.length != 2) {
-          err = [0, err instanceof Error ? err.message : err]
+          err = [0, err.toString()]
         }
         handler(err, msg[3])
       }
@@ -116,10 +116,14 @@ export class NvimTransport extends Transport {
     this.attached = false
     this.encodeStream.unpipe(this.writer)
     this.reader.unpipe(this.decodeStream)
+    for (let handler of this.pending.values()) {
+      handler([0, 'transport disconnected'])
+    }
+    this.pending.clear()
   }
 
   public request(method: string, args: any[], cb: Function): any {
-    if (!this.attached) return
+    if (!this.attached) return cb([0, 'transport disconnected'])
     let id = this.nextRequestId
     this.nextRequestId = this.nextRequestId + 1
     let startTs = Date.now()

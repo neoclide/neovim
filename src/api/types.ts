@@ -2,6 +2,13 @@ import { Buffer } from './Buffer'
 import { Window } from './Window'
 import { Tabpage } from './Tabpage'
 
+export interface Disposable {
+  /**
+   * Dispose this object.
+   */
+  dispose(): void
+}
+
 export enum ExtType {
   Buffer,
   Window,

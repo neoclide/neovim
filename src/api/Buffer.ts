@@ -1,5 +1,6 @@
 import { Range } from '../types'
 import { BaseApi } from './Base'
+import { Disposable } from './types'
 
 export interface BufferSetLines {
   start?: number
@@ -161,13 +162,6 @@ export interface KeymapOption {
   script?: boolean
   expr?: boolean
   unique?: boolean
-}
-
-export interface Disposable {
-  /**
-   * Dispose this object.
-   */
-  dispose(): void
 }
 
 type Chunk = [string, string]
