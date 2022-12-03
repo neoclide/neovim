@@ -1,6 +1,10 @@
-import fs, { WriteStream } from 'fs'
+import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import { inspect } from 'util'
+import { Writable } from 'stream'
+
+const debugging = process.env.COC_NODE_CLIENT_DEBUG == '1' && process.env.COC_TESTER == '1'
 
 export interface ILogger {
   debug: (data: string, ...meta: any[]) => void
@@ -27,10 +31,10 @@ function getLogFile(): string {
 }
 
 const LOG_FILE_PATH = getLogFile()
-const level = process.env.NODE_CLIENT_LOG_LEVEL || 'info'
+export const level = debugging ? 'debug' : process.env.NODE_CLIENT_LOG_LEVEL || 'info'
 
-let invalid = process.getuid && process.getuid() == 0
-if (!invalid) {
+let invalid = !debugging && process.getuid && process.getuid() == 0
+if (!invalid && !debugging) {
   try {
     fs.mkdirSync(path.dirname(LOG_FILE_PATH), { recursive: true })
     fs.writeFileSync(LOG_FILE_PATH, '', { encoding: 'utf8', mode: 0o666 })
@@ -53,24 +57,32 @@ function toObject(arg: any): any {
 }
 
 function toString(arg: any): string {
+  if (debugging) return inspect(arg, { depth: null, colors: true, compact: false })
   if (arg == null) return String(arg)
   if (typeof arg == 'object') return JSON.stringify(arg, null, 2)
   return String(arg)
 }
 
-function toTimeString(d: Date): string {
-  return `${d.getHours()}:${d.getMinutes()}:${d.getSeconds()}.${d.getMilliseconds()}`
+const toTwoDigits = (v: number) => v < 10 ? `0${v}` : v.toString()
+const toThreeDigits = (v: number) => v < 10 ? `00${v}` : v < 100 ? `0${v}` : v.toString()
+
+
+function toTimeString(currentTime: Date): string {
+  return `${toTwoDigits(currentTime.getHours())}:${toTwoDigits(currentTime.getMinutes())}:${toTwoDigits(currentTime.getSeconds())}.${toThreeDigits(currentTime.getMilliseconds())}`
 }
 
 class Logger implements ILogger {
-  private _stream: WriteStream
+  private _stream: Writable
   constructor(private name: string) {
   }
 
-  private get stream(): WriteStream {
-    if (invalid) return null
+  private get stream(): Writable {
     if (this._stream) return this._stream
-    this._stream = fs.createWriteStream(LOG_FILE_PATH, { encoding: 'utf8' })
+    if (debugging) {
+      this._stream = process.stdout
+    } else {
+      this._stream = fs.createWriteStream(LOG_FILE_PATH, { encoding: 'utf8' })
+    }
     return this._stream
   }
 
@@ -78,33 +90,34 @@ class Logger implements ILogger {
     let more = ''
     if (meta.length) {
       let arr = toObject(meta)
-      more = ' ' + arr.map(o => toString(o))
+      more = ' ' + arr.map(o => toString(o)).join(', ')
     }
     return `${toTimeString(new Date())} ${level.toUpperCase()} [${this.name}] - ${data}${more}\n`
   }
 
   public debug(data: string, ...meta: any[]): void {
-    if (level != 'debug' || this.stream == null) return
+    if (level != 'debug' || invalid) return
     this.stream.write(this.getText('debug', data, meta))
   }
 
   public info(data: string, ...meta: any[]): void {
-    if (this.stream == null) return
+    if (invalid) return
     this.stream.write(this.getText('info', data, meta))
   }
 
   public warn(data: string, ...meta: any[]): void {
-    if (this.stream == null) return
+    if (invalid) return
     this.stream.write(this.getText('warn', data, meta))
   }
 
   public error(data: string, ...meta: any[]): void {
-    if (this.stream == null) return
-    this.stream.write(this.getText('error', data, meta))
+    if (invalid) return
+    let stream = debugging ? process.stderr : this.stream
+    stream.write(this.getText('error', data, meta))
   }
 
   public trace(data: string, ...meta: any[]): void {
-    if (level != 'trace' || this.stream == null) return
+    if (level != 'trace' || invalid) return
     this.stream.write(this.getText('trace', data, meta))
   }
 }

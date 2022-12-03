@@ -1,8 +1,8 @@
 import { EventEmitter } from 'events'
-import { createLogger, ILogger } from '../utils/logger'
+import { createLogger, ILogger, level } from '../utils/logger'
 import { NeovimClient } from '../api'
 import { AtomicResult } from '../types'
-const debug = process.env.NODE_CLIENT_LOG_LEVEL == 'debug'
+const debug = level === 'debug'
 const logger = createLogger('transport')
 
 export interface Response {
