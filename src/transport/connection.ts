@@ -85,11 +85,7 @@ export default class Connection extends Emitter {
 
   public send(arr: any[]): void {
     logger.debug('send to vim:', arr)
-    try {
-      this.writeable.write(JSON.stringify(arr) + '\n')
-    } catch (e) {
-      logger.error('Send error:', arr)
-    }
+    this.writeable.write(JSON.stringify(arr) + '\n')
   }
 
   public redraw(force?: boolean): void {

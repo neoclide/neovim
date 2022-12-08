@@ -1,9 +1,9 @@
+import { NeovimClient } from '../api'
+import { isCocNvim } from '../utils/constants'
+import { ILogger } from '../utils/logger'
 import Transport, { Response } from './base'
 import Connection from './connection'
-import { NeovimClient } from '../api'
 import Request from './request'
-import { ILogger } from '../utils/logger'
-import { isCocNvim } from '../utils/constants'
 
 export class VimTransport extends Transport {
   private pending: Map<number, Request> = new Map()
@@ -41,7 +41,7 @@ export class VimTransport extends Transport {
         'request',
         method,
         args,
-        this.createResponse(id)
+        this.createResponse(method, id)
       )
     })
     connection.on('notification', (obj: any) => {
@@ -86,10 +86,10 @@ export class VimTransport extends Transport {
     if (!this.attached) return cb([0, 'transport disconnected'])
     let id = this.nextRequestId
     this.nextRequestId = this.nextRequestId - 1
-    let startTs = Date.now()
-    this.debug('request to vim:', id, method, args)
+    // let startTs = Date.now()
+    // if (debug) this.debug(`Send request "${method}" (${id}) to vim: `, args)
     let req = new Request(this.connection, (err, res) => {
-      if (!err) this.debug(`response from vim cost:`, id, `${Date.now() - startTs}ms`)
+      // if (debug) this.debug(`Receive response "${method}" (${id}) from vim ${Date.now() - startTs}ms`, err ?? res)
       cb(err, res)
     }, id)
     this.pending.set(id, req)
@@ -130,17 +130,17 @@ export class VimTransport extends Transport {
     this.connection.call(this.notifyMethod, [fname, args])
   }
 
-  protected createResponse(requestId: number): Response {
+  protected createResponse(method: string, requestId: number): Response {
     let called = false
     let { connection } = this
-    let startTs = Date.now()
+    // let startTs = Date.now()
     return {
       send: (resp: any, isError?: boolean): void => {
         if (called || !this.attached) return
         called = true
         let err: string = null
         if (isError) err = typeof resp === 'string' ? resp : resp.toString()
-        this.debug('response of client cost:', requestId, `${Date.now() - startTs}ms`)
+        // if (debug) this.debug(`Send "${method}" (${requestId}) response to vim ${Date.now() - startTs}ms`)
         connection.response(requestId, [err, isError ? null : resp])
       }
     }

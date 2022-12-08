@@ -100,5 +100,5 @@ export default abstract class Transport extends EventEmitter {
 
   public abstract notify(method: string, args: any[]): void
 
-  protected abstract createResponse(requestId: number): Response
+  protected abstract createResponse(method: string, requestId: number): Response
 }

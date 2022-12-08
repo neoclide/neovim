@@ -41,11 +41,12 @@ export class NvimTransport extends Transport {
       //   - msg[1]: id
       //   - msg[2]: method name
       //   - msg[3]: arguments
+      let method = msg[2].toString()
       this.emit(
         'request',
-        msg[2].toString(),
+        method,
         msg[3],
-        this.createResponse(msg[1])
+        this.createResponse(method, msg[1])
       )
     } else if (msgType === 1) {
       // response to a previous request:
@@ -164,7 +165,7 @@ export class NvimTransport extends Transport {
     )
   }
 
-  protected createResponse(requestId: number): Response {
+  protected createResponse(method: string, requestId: number): Response {
     let { encodeStream } = this
     let startTs = Date.now()
     let called = false
