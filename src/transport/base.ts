@@ -69,14 +69,14 @@ export default abstract class Transport extends EventEmitter {
           return this.request('nvim_call_atomic', [list], (err, res) => {
             if (err) {
               let e = new Error(`call_atomic error: ${err[1]}`)
-              e.stack = obj.stack
+              e.stack = obj.stack.replace(/^Error/, `Error: ${e.message}`)
               return reject(e)
             }
             if (Array.isArray(res) && res[1] != null) {
               let [index, errType, message] = res[1]
               let [fname, args] = list[index]
               let e = new Error(`call_atomic request error on "${fname}": ${message}`)
-              e.stack = obj.stack
+              e.stack = obj.stack.replace(/^Error/, `Error: ${e.message}`)
               this.logger.error(`call_atomic request error ${errType} on "${fname}"`, args, message, e)
               return reject(e)
             }
