@@ -3,6 +3,12 @@ import { Window } from './Window'
 
 export class Tabpage extends BaseApi {
   public prefix = 'nvim_tabpage_'
+  /**
+   * The windowid that not change within a Vim session
+   */
+  public get id(): number {
+    return this.data as number
+  }
 
   /** Returns all windows of tabpage */
   public get windows(): Promise<Window[]> {
