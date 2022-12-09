@@ -101,11 +101,11 @@ export default class Connection extends Emitter {
   }
 
   public call(func: string, args: any[], requestId?: number): void {
-    if (!requestId) {
-      this.send(['call', func, args])
+    if (typeof requestId === 'number') {
+      this.send(['call', func, args, requestId])
       return
     }
-    this.send(['call', func, args, requestId])
+    this.send(['call', func, args])
   }
 
   public dispose(): void {

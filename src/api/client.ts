@@ -200,8 +200,10 @@ export class NeovimClient extends Neovim {
 
   /* called when attach process disconnected*/
   public detach(): void {
+    this.attachedBuffers.clear()
     this.transport.detach()
     this.transportAttached = false
+    this.removeAllListeners()
   }
 
   public get isApiReady(): boolean {
@@ -283,7 +285,7 @@ export class NeovimClient extends Neovim {
         this.emit('vim_error', args[1])
         return
       }
-      this.logger.debug(`Unhandled event: ${method}`, args)
+      this.logger.warn(`Unhandled event: ${method}`, args)
     } else {
       this.emit('notification', method, args)
     }

@@ -1,5 +1,4 @@
 import { BaseApi } from './Base'
-import { ExtType, Metadata } from './types'
 import { Window } from './Window'
 
 export class Tabpage extends BaseApi {

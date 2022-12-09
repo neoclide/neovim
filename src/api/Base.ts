@@ -10,9 +10,6 @@ export interface BaseConstructorOptions {
   client?: any
 }
 
-// i.e. a plugin that detaches will affect all plugins registered on host
-// const EXCLUDED = ['nvim_buf_attach', 'nvim_buf_detach']
-
 // Instead of dealing with multiple inheritance (or lackof), just extend EE
 // Only the Neovim API class should use EE though
 export class BaseApi extends EventEmitter {
@@ -53,7 +50,7 @@ export class BaseApi extends EventEmitter {
           let e = new Error(err[1])
           if (!name.endsWith('get_var')) {
             let stack = (args as any).stack
-            e.stack = `Error: request error on ${name} - ${err[1]}\n` + stack.split(/\r?\n/).slice(3).join('\n')
+            e.stack = `Error: request error on "${name}" - ${err[1]}\n` + stack.split(/\r?\n/).slice(3).join('\n')
             this.client.logError(`request error on "${name}"`, args, e)
           }
           reject(e)
