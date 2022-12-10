@@ -36,6 +36,7 @@ export default class Request {
         return cb(null, client.createBuffer(result))
       case 'nvim_list_tabpages':
         return cb(null, result.map(o => client.createTabpage(o)))
+      case 'nvim_win_get_tabpage':
       case 'nvim_get_current_tabpage':
         return cb(null, client.createTabpage(result))
       default:
