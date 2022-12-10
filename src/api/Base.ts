@@ -15,7 +15,7 @@ export interface BaseConstructorOptions {
 export class BaseApi extends EventEmitter {
   protected transport: Transport
   protected prefix: string
-  public data: Number
+  public data: number
   protected client: NeovimClient
 
   constructor({
@@ -24,7 +24,6 @@ export class BaseApi extends EventEmitter {
     client,
   }: BaseConstructorOptions) {
     super()
-
     this.setTransport(transport)
     this.data = data
     this.client = client
@@ -61,7 +60,7 @@ export class BaseApi extends EventEmitter {
     })
   }
 
-  protected getArgsByPrefix(args: any[]): string[] {
+  protected getArgsByPrefix(args: any[]): any[] {
     // Check if class is Neovim and if so, should not send `this` as first arg
     if (this.prefix !== 'nvim_' && args[0] != this) {
       let id = this.transport.isVim ? this.data : this
@@ -115,5 +114,9 @@ export class BaseApi extends EventEmitter {
   /** `request` is basically the same except you can choose to wait forpromise to be resolved */
   public notify(name: string, args: any[] = []): void {
     this.transport.notify(name, this.getArgsByPrefix(args))
+  }
+
+  public toJSON(): number {
+    return this.data
   }
 }

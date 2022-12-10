@@ -14,20 +14,7 @@ export default class Request {
 
   public request(method: string, args: any[] = []): void {
     this.method = method
-    this.connection.call(func, [method.slice(5), this.convertArguments(method, args)], this.id)
-  }
-
-  public convertArguments(method: string, args: any[]): any[] {
-    switch (method) {
-      case 'nvim_set_current_buf':
-        return [args[0].id]
-      case 'nvim_set_current_win':
-        return [args[0].id]
-      case 'nvim_set_current_tabpage':
-        return [args[0].id]
-      default:
-        return args
-    }
+    this.connection.call(func, [method.slice(5), args], this.id)
   }
 
   public callback(client: NeovimClient, err: any, result: any): void {

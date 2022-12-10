@@ -15,6 +15,10 @@ export class Window extends BaseApi {
     return this.data as number
   }
 
+  public setBuffer(buffer: Buffer): Promise<void> {
+    return this.request(`${this.prefix}set_buf`, [buffer])
+  }
+
   /** Get current buffer of window */
   public get buffer(): Promise<Buffer> {
     return this.request(`${this.prefix}get_buf`, [])
