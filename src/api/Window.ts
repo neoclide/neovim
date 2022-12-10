@@ -1,9 +1,8 @@
+import { Range } from '../types'
 import { BaseApi } from './Base'
 import { Buffer } from './Buffer'
 import { Tabpage } from './Tabpage'
 import { FloatOptions } from './types'
-import { clearInterval } from 'timers'
-import { Range } from '../types'
 
 export class Window extends BaseApi {
   public prefix = 'nvim_win_'
@@ -65,7 +64,7 @@ export class Window extends BaseApi {
   public setWidth(width: number, isNotify: true): null
   public setWidth(width: number, isNotify = false): Promise<void> | null {
     let method = isNotify ? 'notify' : 'request'
-    return this[method](`${this.prefix}set_height`, [width])
+    return this[method](`${this.prefix}set_width`, [width])
   }
 
   /** Get window position */
@@ -113,20 +112,6 @@ export class Window extends BaseApi {
   public close(force: boolean, isNotify?: boolean): Promise<void> {
     if (isNotify) {
       this.notify(`${this.prefix}close`, [force])
-      let count = 0
-      let interval = setInterval(() => {
-        if (count == 5) return clearInterval(interval)
-        this.request(`${this.prefix}is_valid`, []).then(valid => {
-          if (!valid) {
-            clearInterval(interval)
-          } else {
-            this.notify(`${this.prefix}close`, [force])
-          }
-        }, () => {
-          clearInterval(interval)
-        })
-        count++
-      }, 50)
       return null
     }
     return this.request(`${this.prefix}close`, [force])
