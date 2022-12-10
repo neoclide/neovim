@@ -229,7 +229,7 @@ export class Neovim extends BaseApi {
     dict: object,
     fname: string,
     args: VimValue | VimValue[] = []
-  ): object {
+  ): Promise<unknown> {
     const _args = this.getArgs(args)
     return this.request(`${this.prefix}call_dict_function`, [
       dict,
