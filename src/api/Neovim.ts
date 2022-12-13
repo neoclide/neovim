@@ -28,20 +28,17 @@ export interface Proc {
   pid: number
 }
 
+function getArgs(args?: VimValue | VimValue[]): VimValue[] {
+  if (!args) return []
+  if (Array.isArray(args)) return args
+  return [args]
+}
+
 /**
  * Neovim API
  */
 export class Neovim extends BaseApi {
   protected prefix = 'nvim_'
-  public Buffer = Buffer
-  public Window = Window
-  public Tabpage = Tabpage
-
-  private getArgs(args?: VimValue | VimValue[]): VimValue[] {
-    if (!args) return []
-    if (Array.isArray(args)) return args
-    return [args]
-  }
 
   public get apiInfo(): Promise<[number, ApiInfo]> {
     return this.request(`${this.prefix}get_api_info`)
@@ -221,7 +218,7 @@ export class Neovim extends BaseApi {
 
   // Alias for `lua()` to be consistent with neovim API
   public executeLua(code: string, args: VimValue[] = []): Promise<unknown> {
-    const _args = this.getArgs(args)
+    const _args = getArgs(args)
     return this.lua(code, _args)
   }
 
@@ -230,7 +227,7 @@ export class Neovim extends BaseApi {
     fname: string,
     args: VimValue | VimValue[] = []
   ): Promise<unknown> {
-    const _args = this.getArgs(args)
+    const _args = getArgs(args)
     return this.request(`${this.prefix}call_dict_function`, [
       dict,
       fname,
@@ -242,7 +239,7 @@ export class Neovim extends BaseApi {
   public call(fname: string, args?: VimValue | VimValue[]): Promise<unknown>
   public call(fname: string, args: VimValue | VimValue[], isNotify: true): null
   public call(fname: string, args: VimValue | VimValue[] = [], isNotify?: boolean): Promise<unknown | null> {
-    const _args = this.getArgs(args)
+    const _args = getArgs(args)
     if (isNotify) {
       this.notify(`${this.prefix}call_function`, [fname, _args])
       return null
@@ -254,7 +251,7 @@ export class Neovim extends BaseApi {
   public callTimer(fname: string, args?: VimValue | VimValue[]): Promise<null>
   public callTimer(fname: string, args: VimValue | VimValue[], isNotify: true): null
   public callTimer(fname: string, args: VimValue | VimValue[] = [], isNotify?: boolean): Promise<null> {
-    const _args = this.getArgs(args)
+    const _args = getArgs(args)
     if (isNotify) {
       this.notify(`${this.prefix}call_function`, ['coc#util#timer', [fname, _args]])
       return null
@@ -271,7 +268,7 @@ export class Neovim extends BaseApi {
   }
 
   public callAsync(fname: string, args: VimValue | VimValue[] = []): Promise<unknown> {
-    const _args = this.getArgs(args)
+    const _args = getArgs(args)
     return this.client.sendAsyncRequest(fname, _args)
   }
 

@@ -116,8 +116,6 @@ describe('Nvim Promise API', () => {
     const windows = await nvim.windows
 
     expect(windows.length).toEqual(4)
-    expect(windows[0] instanceof nvim.Window).toEqual(true)
-    expect(windows[1] instanceof nvim.Window).toEqual(true)
 
     await nvim.setWindow(windows[2])
     const win = await nvim.window
@@ -126,7 +124,6 @@ describe('Nvim Promise API', () => {
     expect(win.equals(windows[2])).toBe(true)
 
     const buf = await nvim.buffer
-    expect(buf instanceof nvim.Buffer).toEqual(true)
 
     const lines = await buf.getLines({ start: 0, end: -1, strictIndexing: false })
     expect(lines).toEqual([])

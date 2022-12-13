@@ -231,9 +231,9 @@ export class Buffer extends BaseApi {
   }
 
   /** Set lines of buffer given indices */
-  public setLines(lines: string | string[], opts: BufferSetLines): Promise<void>
+  public setLines(lines: string | string[], opts?: BufferSetLines): Promise<void>
   public setLines(lines: string | string[], opts: BufferSetLines, notify: true): void
-  public setLines(lines: string | string[], opts: BufferSetLines, notify = false) {
+  public setLines(lines: string | string[], opts?: BufferSetLines, notify = false) {
     let { start, end, strictIndexing } = opts ?? {}
     start = start ?? 0
     end = end ?? start + 1
@@ -595,11 +595,11 @@ export class Buffer extends BaseApi {
    * Listens to buffer for events
    */
   public listen(eventName: string, cb: Function, disposables?: Disposable[]): void {
-    this.client.attachBufferEvent(this, eventName, cb)
+    this.client.attachBufferEvent(this.id, eventName, cb)
     if (disposables) {
       disposables.push({
         dispose: () => {
-          this.client.detachBufferEvent(this, eventName, cb)
+          this.client.detachBufferEvent(this.id, eventName, cb)
         }
       })
     }

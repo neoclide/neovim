@@ -1,8 +1,8 @@
 import * as msgpack from '@chemzqm/msgpack-lite'
-import Buffered from '../utils/buffered'
 import { Metadata } from '../api/types'
-import Transport, { Response } from './base'
+import Buffered from '../utils/buffered'
 import { ILogger } from '../utils/logger'
+import Transport, { Response } from './base'
 
 export class NvimTransport extends Transport {
   private pending: Map<number, Function> = new Map()
@@ -86,7 +86,6 @@ export class NvimTransport extends Transport {
           id,
           data =>
             new constructor({
-              transport: this,
               client: this.client,
               data: msgpack.decode(data),
             })

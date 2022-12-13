@@ -1,36 +1,33 @@
-import { EventEmitter } from 'events'
 import Transport from '../transport/base'
 import { VimValue } from '../types'
 import { NeovimClient } from './client'
 
 export interface BaseConstructorOptions {
-  transport?: Transport
   data?: number
-  metadata?: any
   client?: any
 }
 
-// Instead of dealing with multiple inheritance (or lackof), just extend EE
-// Only the Neovim API class should use EE though
-export class BaseApi extends EventEmitter {
-  protected transport: Transport
+export class BaseApi {
   protected prefix: string
-  public data: number
+  public data: number | undefined
   protected client: NeovimClient
 
   constructor({
-    transport,
     data,
     client,
   }: BaseConstructorOptions) {
-    super()
-    this.setTransport(transport)
     this.data = data
-    this.client = client
+    if (client) {
+      this.client = client
+    } else {
+      Object.defineProperty(this, 'client', {
+        value: this
+      })
+    }
   }
 
-  protected setTransport(transport: Transport): void {
-    this.transport = transport
+  protected get transport(): Transport {
+    return this.client._transport
   }
 
   public equals(other: BaseApi): boolean {
@@ -117,6 +114,6 @@ export class BaseApi extends EventEmitter {
   }
 
   public toJSON(): number {
-    return this.data
+    return this.data ?? 0
   }
 }

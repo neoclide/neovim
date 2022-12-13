@@ -10,6 +10,8 @@ import { Buffer } from './Buffer'
 import { Neovim } from './Neovim'
 import { Tabpage } from './Tabpage'
 import { Window } from './Window'
+import { EventEmitter } from 'events'
+import Transport from '../transport/base'
 
 export type Callback = (err?: Error | null, res?: any) => void
 
@@ -111,25 +113,39 @@ export class AsyncResponse {
   }
 }
 
+function applyMixins(derivedCtor: any, constructors: any[]) {
+  constructors.forEach((baseCtor) => {
+    Object.getOwnPropertyNames(baseCtor.prototype).forEach((name) => {
+      Object.defineProperty(
+        derivedCtor.prototype,
+        name,
+        Object.getOwnPropertyDescriptor(baseCtor.prototype, name) ||
+        Object.create(null)
+      )
+    })
+  })
+}
+
+export interface NeovimClient extends Neovim, EventEmitter {}
+
 export class NeovimClient extends Neovim {
   private _isReady: Promise<boolean>
   private requestId = 1
-  private transportAttached: boolean
   private responses: Map<number, AsyncResponse> = new Map()
   private _channelId: number
   private attachedBuffers: Map<number, Map<string, Function[]>> = new Map()
+  public _transport: Transport
 
   constructor(private logger: ILogger, public readonly isVim: boolean) {
     // Neovim has no `data` or `metadata`
     super({})
-    Object.defineProperty(this, 'client', {
-      value: this
-    })
-    let transport = isVim ? new VimTransport(logger) : new NvimTransport(logger)
-    this.setTransport(transport)
-    this.transportAttached = false
+    this._transport = isVim ? new VimTransport(logger) : new NvimTransport(logger)
     this.handleRequest = this.handleRequest.bind(this)
     this.handleNotification = this.handleNotification.bind(this)
+  }
+
+  protected get transport(): Transport {
+    return this._transport
   }
 
   public echoError(msg: unknown): void {
@@ -151,7 +167,6 @@ export class NeovimClient extends Neovim {
 
   public createBuffer(id: number): Buffer {
     return new Buffer({
-      transport: this.transport,
       data: id,
       client: this
     })
@@ -159,7 +174,6 @@ export class NeovimClient extends Neovim {
 
   public createWindow(id: number): Window {
     return new Window({
-      transport: this.transport,
       data: id,
       client: this
     })
@@ -167,14 +181,9 @@ export class NeovimClient extends Neovim {
 
   public createTabpage(id: number): Tabpage {
     return new Tabpage({
-      transport: this.transport,
       data: id,
       client: this
     })
-  }
-
-  public send(arr: any[]): void {
-    this.transport.send(arr)
   }
 
   /**
@@ -194,30 +203,36 @@ export class NeovimClient extends Neovim {
     writer: NodeJS.WritableStream
   }, requestApi = true): void {
     this.transport.attach(writer, reader, this)
-    this.transportAttached = true
-    this.setupTransport(requestApi)
+    this.transport.on('request', this.handleRequest)
+    this.transport.on('notification', this.handleNotification)
+    this.transport.on('detach', () => {
+      this.emit('disconnect')
+      this.transport.removeAllListeners('request')
+      this.transport.removeAllListeners('notification')
+      this.transport.removeAllListeners('detach')
+    })
+    if (requestApi) {
+      this._isReady = this.generateApi().catch(err => {
+        this.logger.error(err)
+        return false
+      })
+    } else {
+      this._channelId = -1
+      this._isReady = Promise.resolve(true)
+    }
   }
 
   /* called when attach process disconnected*/
   public detach(): void {
     this.attachedBuffers.clear()
     this.transport.detach()
-    this.transportAttached = false
     this.removeAllListeners()
-  }
-
-  public get isApiReady(): boolean {
-    return this.transportAttached && typeof this._channelId !== 'undefined'
   }
 
   public get channelId(): Promise<number> {
     return this._isReady.then(() => {
       return this._channelId
     })
-  }
-
-  public isAttached(bufnr: number): boolean {
-    return this.attachedBuffers.has(bufnr)
   }
 
   private handleRequest(
@@ -241,7 +256,7 @@ export class NeovimClient extends Neovim {
     })
   }
 
-  private emitNotification(method: string, args: any[]): void {
+  private handleNotification(method: string, args: VimValue[]): void {
     if (method.endsWith('_event')) {
       if (method.startsWith('nvim_buf_')) {
         const shortName = method.replace(/nvim_buf_(.*)_event/, '$1')
@@ -260,7 +275,7 @@ export class NeovimClient extends Neovim {
       // async_request_event from vim
       if (method.startsWith('nvim_async_request')) {
         const [id, method, arr] = args
-        this.handleRequest(method, arr, {
+        this.handleRequest(method as string, arr as any[], {
           send: (resp: any, isError?: boolean): void => {
             this.notify('nvim_call_function', ['coc#rpc#async_response', [id, resp, isError]])
           }
@@ -270,14 +285,13 @@ export class NeovimClient extends Neovim {
       // nvim_async_response_event
       if (method.startsWith('nvim_async_response')) {
         const [id, err, res] = args
-        const response = this.responses.get(id)
+        const response = this.responses.get(id as number)
         if (!response) {
-          // tslint:disable-next-line: no-console
-          console.error(`Response not found for request ${id}`)
+          this.logError(`Response not found for request ${id}`)
           return
         }
-        this.responses.delete(id)
-        response.finish(err, res)
+        this.responses.delete(id as number)
+        response.finish(err as string, res)
         return
       }
       if (method === 'nvim_error_event') {
@@ -288,35 +302,6 @@ export class NeovimClient extends Neovim {
       this.logger.warn(`Unhandled event: ${method}`, args)
     } else {
       this.emit('notification', method, args)
-    }
-  }
-
-  private handleNotification(method: string, args: VimValue[]): void {
-    this.emitNotification(method, args)
-  }
-
-  // Listen and setup handlers for transport
-  private setupTransport(requestApi = true): void {
-    if (!this.transportAttached) {
-      throw new Error('Not attached to input/output')
-    }
-
-    this.transport.on('request', this.handleRequest)
-    this.transport.on('notification', this.handleNotification)
-    this.transport.on('detach', () => {
-      this.emit('disconnect')
-      this.transport.removeAllListeners('request')
-      this.transport.removeAllListeners('notification')
-      this.transport.removeAllListeners('detach')
-    })
-    if (requestApi) {
-      this._isReady = this.generateApi().catch(err => {
-        this.logger.error(err)
-        return false
-      })
-    } else {
-      this._channelId = 1
-      this._isReady = Promise.resolve(true)
     }
   }
 
@@ -345,21 +330,21 @@ export class NeovimClient extends Neovim {
     return true
   }
 
-  public attachBufferEvent(buffer: Buffer, eventName: string, cb: Function): void {
-    const bufferMap = this.attachedBuffers.get(buffer.id) || new Map<string, Function[]>()
+  public attachBufferEvent(bufnr: number, eventName: string, cb: Function): void {
+    const bufferMap = this.attachedBuffers.get(bufnr) || new Map<string, Function[]>()
     const cbs = bufferMap.get(eventName) || []
     if (cbs.includes(cb)) return
     cbs.push(cb)
     bufferMap.set(eventName, cbs)
-    this.attachedBuffers.set(buffer.id, bufferMap)
+    this.attachedBuffers.set(bufnr, bufferMap)
     return
   }
 
   /**
    * Returns `true` if buffer should be detached
    */
-  public detachBufferEvent(buffer: Buffer, eventName: string, cb: Function): void {
-    const bufferMap = this.attachedBuffers.get(buffer.id)
+  public detachBufferEvent(bufnr: number, eventName: string, cb: Function): void {
+    const bufferMap = this.attachedBuffers.get(bufnr)
     if (!bufferMap || !bufferMap.has(eventName)) return
     const handlers = bufferMap.get(eventName).filter(handler => handler !== cb)
     bufferMap.set(eventName, handlers)
@@ -400,3 +385,5 @@ export class NeovimClient extends Neovim {
     return functionsOnVim.includes(name)
   }
 }
+
+applyMixins(NeovimClient, [EventEmitter])
