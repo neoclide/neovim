@@ -273,7 +273,7 @@ export class NeovimClient extends Neovim {
         return
       }
       // async_request_event from vim
-      if (method.startsWith('nvim_async_request')) {
+      if (method == 'nvim_async_request_event') {
         const [id, method, arr] = args
         this.handleRequest(method as string, arr as any[], {
           send: (resp: any, isError?: boolean): void => {
@@ -283,7 +283,7 @@ export class NeovimClient extends Neovim {
         return
       }
       // nvim_async_response_event
-      if (method.startsWith('nvim_async_response')) {
+      if (method == 'nvim_async_response_event') {
         const [id, err, res] = args
         const response = this.responses.get(id as number)
         if (!response) {
