@@ -157,6 +157,7 @@ export interface HighlightOption {
 }
 
 export interface KeymapOption {
+  noremap?: boolean
   nowait?: boolean
   silent?: boolean
   script?: boolean
@@ -391,10 +392,10 @@ export class Buffer extends BaseApi {
   }
 
   /**
-   * Add keymap by notification.
+   * Add buffer keymap by notification.
    */
   public setKeymap(mode: string, lhs: string, rhs: string, opts: KeymapOption = {}): void {
-    this.client.call('coc#compat#buf_add_keymap', [this.id, mode, lhs, rhs, opts], true)
+    this.notify(`${this.prefix}set_keymap`, [mode, lhs, rhs, opts])
   }
 
   /**
