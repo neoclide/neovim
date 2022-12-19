@@ -398,6 +398,10 @@ export class Buffer extends BaseApi {
     this.notify(`${this.prefix}set_keymap`, [mode, lhs, rhs, opts])
   }
 
+  public deleteKeymap(mode: string, lhs: string): void {
+    this.notify(`${this.prefix}del_keymap`, [mode, lhs])
+  }
+
   /**
  * Checks if a buffer is valid and loaded. See |api-buffer| for
  * more info about unloaded buffers.
