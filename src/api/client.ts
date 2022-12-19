@@ -20,6 +20,8 @@ const functionsOnVim = [
   'nvim_get_mode',
   'nvim_list_runtime_paths',
   'nvim_win_del_var',
+  'nvim_create_buf',
+  'nvim_exec',
   'nvim_tabpage_list_wins',
   'nvim_buf_del_var',
   'nvim_buf_get_mark',

@@ -28,6 +28,10 @@ export interface Proc {
   pid: number
 }
 
+export type MouseButton = 'left' | 'right' | 'middle' | 'wheel'
+
+export type ButtonAction = 'press' | 'drag' | 'release' | 'up' | 'down' | 'left' | 'right'
+
 function getArgs(args?: VimValue | VimValue[]): VimValue[] {
   if (!args) return []
   if (Array.isArray(args)) return args
@@ -323,6 +327,21 @@ export class Neovim extends BaseApi {
   /** Sends input keys */
   public input(keys: string): Promise<number> {
     return this.request(`${this.prefix}input`, [keys])
+  }
+
+  /**
+   * Send mouse event from GUI. Neovim only.
+   *
+   * @param {MouseButton} button Mouse button: one of "left", "right", "middle", "wheel", "move".
+   * @param {ButtonAction} action For ordinary buttons, one of "press", "drag", "release".
+   * @param {string} modifier String of modifiers each represented by a single char.
+   * @param {number} row Mouse row-position (zero-based, like redraw events)
+   * @param {number} col Mouse column-position (zero-based, like redraw events)
+   * @param {number} grid Grid number if the client uses |ui-multigrid|, else 0.
+   * @returns {Promise<null>}
+   */
+  public inputMouse(button: MouseButton, action: ButtonAction, modifier: string, row: number, col: number, grid = 0): Promise<null> {
+    return this.request(`${this.prefix}input_mouse`, [button, action, modifier, grid, row, col])
   }
 
   /**
