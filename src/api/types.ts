@@ -9,6 +9,15 @@ export interface Disposable {
   dispose(): void
 }
 
+export interface KeymapOption {
+  noremap?: boolean
+  nowait?: boolean
+  silent?: boolean
+  script?: boolean
+  expr?: boolean
+  unique?: boolean
+}
+
 export enum ExtType {
   Buffer,
   Window,

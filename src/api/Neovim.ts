@@ -3,7 +3,7 @@ import { BaseApi } from './Base'
 import { Buffer } from './Buffer'
 import { Tabpage } from './Tabpage'
 import { Window } from './Window'
-import { FloatOptions } from './types'
+import { FloatOptions, KeymapOption } from './types'
 import { isCocNvim } from '../utils/constants'
 
 export interface UiAttachOptions {
@@ -161,6 +161,18 @@ export class Neovim extends BaseApi {
   /** Gets keymap */
   public getKeymap(mode: string): Promise<object[]> {
     return this.request(`${this.prefix}get_keymap`, [mode])
+  }
+
+  /**
+   * Add keymap by notification, replace keycodes for expr keymap enabled by default.
+   */
+  public setKeymap(mode: string, lhs: string, rhs: string, opts: KeymapOption = {}): void {
+    let option = opts.expr ? Object.assign({ replace_keycodes: true }, opts) : opts
+    this.notify(`${this.prefix}set_keymap`, [mode, lhs, rhs, option])
+  }
+
+  public deleteKeymap(mode: string, lhs: string): void {
+    this.notify(`${this.prefix}del_keymap`, [mode, lhs])
   }
 
   /** Gets current mode */

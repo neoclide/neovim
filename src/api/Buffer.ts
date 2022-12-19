@@ -1,6 +1,6 @@
 import { Range } from '../types'
 import { BaseApi } from './Base'
-import { Disposable } from './types'
+import { Disposable, KeymapOption } from './types'
 
 export interface BufferSetLines {
   start?: number
@@ -154,15 +154,6 @@ export interface HighlightOption {
   end?: number
   priority?: number
   changedtick?: number
-}
-
-export interface KeymapOption {
-  noremap?: boolean
-  nowait?: boolean
-  silent?: boolean
-  script?: boolean
-  expr?: boolean
-  unique?: boolean
 }
 
 type Chunk = [string, string]
@@ -392,10 +383,11 @@ export class Buffer extends BaseApi {
   }
 
   /**
-   * Add buffer keymap by notification.
+   * Add buffer keymap by notification, replace keycodes for expr keymap enabled by default.
    */
   public setKeymap(mode: string, lhs: string, rhs: string, opts: KeymapOption = {}): void {
-    this.notify(`${this.prefix}set_keymap`, [mode, lhs, rhs, opts])
+    let option = opts.expr ? Object.assign({ replace_keycodes: true }, opts) : opts
+    this.notify(`${this.prefix}set_keymap`, [mode, lhs, rhs, option])
   }
 
   public deleteKeymap(mode: string, lhs: string): void {
