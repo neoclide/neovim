@@ -1,6 +1,6 @@
 export { attach, Attach } from './attach/attach'
-export { FloatOptions } from './api/types'
+export { FloatOptions, KeymapOption } from './api/types'
 export { VimValue } from './types'
 export { UiAttachOptions } from './api/Neovim'
-export { BufferSetLines, BufferHighlight, BufferClearHighlight, VirtualTextOption, SignPlaceOption, SignUnplaceOption, SignPlacedOption, SignItem, VimHighlightItem, KeymapOption } from './api/Buffer'
+export { BufferSetLines, BufferHighlight, BufferClearHighlight, VirtualTextOption, SignPlaceOption, SignUnplaceOption, SignPlacedOption, SignItem, VimHighlightItem } from './api/Buffer'
 export { Neovim, Buffer, Tabpage, Window } from './api/index'
