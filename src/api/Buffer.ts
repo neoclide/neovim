@@ -54,7 +54,7 @@ export interface ExtmarkOptions {
   hl_eol?: boolean
   // A list of [text, highlight] tuples
   virt_text?: [string, string | string[]][]
-  virt_text_pos?: 'eol' | 'overlay' | 'right_align'
+  virt_text_pos?: 'eol' | 'overlay' | 'right_align' | 'inline'
   virt_text_win_col?: number
   virt_text_hide?: boolean
   virt_lines?: [string, string | string[]][][]
