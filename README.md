@@ -6,7 +6,7 @@ on both vim8 and neovim.
 Currently works on node >= 8.
 
 This module is used by [coc.nvim](https://github.com/neoclide/coc.nvim), you can
-this module to create extension for vim8 and neovim, but it's recommended to
+use this module to create extension for vim8 and neovim, but it's recommended to
 build extension for coc.nvim.
 
 ## Installation
