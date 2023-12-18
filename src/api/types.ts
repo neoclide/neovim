@@ -36,6 +36,21 @@ export interface FloatOptions {
   width: number
   row: number
   col: number
+  style?: 'minimal'
+  border?:
+    | 'none'
+    | 'single'
+    | 'double'
+    | 'rounded'
+    | 'solid'
+    | 'shadow'
+    | [number]
+    | [number, number]
+    | [number, number, number, number]
+    | [number, number, number, number, number, number, number, number]
+  title?: string | [string, string]
+  title_pos?: 'left' | 'center' | 'right'
+  noautocmd?: boolean
 }
 
 export interface MetadataType {
