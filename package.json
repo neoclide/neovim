@@ -23,7 +23,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/chemzqm/node-client"
+    "url": "git+https://github.com/chemzqm/node-client.git"
   },
   "bugs": {
     "url": "https://github.com/chemzqm/node-client/issues"
