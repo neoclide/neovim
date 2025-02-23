@@ -21,7 +21,7 @@ export class Window extends BaseApi {
 
   /** Retrieves a scoped option depending on type of `this` */
   public getOption(name: string): Promise<VimValue> {
-    if (isCocNvim) return this.request(`${this.prefix}get_option_value`, [name, { scope: 'local', win: this.id }])
+    if (isCocNvim) return this.request(`nvim_get_option_value`, [name, { scope: 'local', win: this.id }])
     return super.getOption(name)
   }
 
@@ -29,7 +29,7 @@ export class Window extends BaseApi {
   public setOption(name: string, value: VimValue): Promise<void>
   public setOption(name: string, value: VimValue, isNotify: true): void
   public setOption(name: string, value: VimValue, isNotify?: boolean): Promise<void> | void {
-    if (isCocNvim) return this[isNotify ? 'notify' : 'request'](`${this.prefix}set_option_value`, [name, value, { scope: 'local', win: this.id }])
+    if (isCocNvim) return this[isNotify ? 'notify' : 'request'](`nvim_set_option_value`, [name, value, { scope: 'local', win: this.id }])
     return this[isNotify ? 'notify' : 'request'](`${this.prefix}set_option`, [name, value])
   }
 
