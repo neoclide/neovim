@@ -64,6 +64,8 @@ export interface ExtmarkOptions {
   right_gravity?: boolean
   end_right_gravity?: boolean
   priority?: number
+  // requires neovim 0.10.5
+  url?: string
 }
 
 export interface ExtmarkDetails {
