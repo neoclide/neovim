@@ -38,16 +38,18 @@ export class BaseApi {
     }
   }
 
-  public async request(name: string, args: any[] = []): Promise<any> {
+  public async request(name: string, args: any[] = [], skipConvert = false): Promise<any> {
     Error.captureStackTrace(args)
+    const self = this
     return new Promise<any>((resolve, reject) => {
-      this.transport.request(name, this.getArgsByPrefix(args), (err: any, res: any) => {
+      let converted = skipConvert ? args : this.getArgsByPrefix(args)
+      this.transport.request(name, converted, (err: any, res: any) => {
         if (err) {
           let e = new Error(err[1])
           if (!name.endsWith('get_var')) {
             let stack = (args as any).stack
             e.stack = `Error: request error on "${name}" - ${err[1]}\n` + stack.split(/\r?\n/).slice(3).join('\n')
-            this.client.logError(`request error on "${name}"`, args, e)
+            this.client.logError(`request error on "${name}"`, converted.map(o => o === self ? self.data : o), e)
           }
           reject(e)
         } else {
@@ -59,7 +61,7 @@ export class BaseApi {
 
   protected getArgsByPrefix(args: any[]): any[] {
     // Check if class is Neovim and if so, should not send `this` as first arg
-    if (this.prefix !== 'nvim_' && args[0] != this) {
+    if (this.prefix !== 'nvim_' && args[0] !== this) {
       let id = this.transport.isVim ? this.data : this
       return [id, ...args]
     }
@@ -109,8 +111,8 @@ export class BaseApi {
   }
 
   /** `request` is basically the same except you can choose to wait forpromise to be resolved */
-  public notify(name: string, args: any[] = []): void {
-    this.transport.notify(name, this.getArgsByPrefix(args))
+  public notify(name: string, args: any[] = [], skipConvert = false): void {
+    this.transport.notify(name, skipConvert ? args : this.getArgsByPrefix(args))
   }
 
   public toJSON(): number {
