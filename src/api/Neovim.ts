@@ -58,6 +58,20 @@ export class Neovim extends BaseApi {
     return this.request(`${this.prefix}get_current_buf`)
   }
 
+  /** Retrieves a scoped option depending on type of `this` */
+  public getOption(name: string): Promise<VimValue> {
+    if (isCocNvim) return this.request(`${this.prefix}get_option_value`, [name])
+    return super.getOption(name)
+  }
+
+  /** Set scoped option */
+  public setOption(name: string, value: VimValue): Promise<void>
+  public setOption(name: string, value: VimValue, isNotify: true): void
+  public setOption(name: string, value: VimValue, isNotify?: boolean): Promise<void> | void {
+    if (isCocNvim) return this[isNotify ? 'notify' : 'request'](`${this.prefix}set_option_value`, [name, value, {}])
+    return this[isNotify ? 'notify' : 'request'](`${this.prefix}set_option`, [name, value])
+  }
+
   /** Set current buffer */
   public async setBuffer(buffer: Buffer): Promise<void> {
     await this.request(`${this.prefix}set_current_buf`, [buffer])

@@ -1,4 +1,5 @@
-import { Range } from '../types'
+import { Range, VimValue } from '../types'
+import { isCocNvim } from '../utils/constants'
 import { BaseApi } from './Base'
 import { Buffer } from './Buffer'
 import { Tabpage } from './Tabpage'
@@ -16,6 +17,20 @@ export class Window extends BaseApi {
 
   public setBuffer(buffer: Buffer): Promise<void> {
     return this.request(`${this.prefix}set_buf`, [buffer])
+  }
+
+  /** Retrieves a scoped option depending on type of `this` */
+  public getOption(name: string): Promise<VimValue> {
+    if (isCocNvim) return this.request(`${this.prefix}get_option_value`, [name, { scope: 'local', win: this.id }])
+    return super.getOption(name)
+  }
+
+  /** Set scoped option */
+  public setOption(name: string, value: VimValue): Promise<void>
+  public setOption(name: string, value: VimValue, isNotify: true): void
+  public setOption(name: string, value: VimValue, isNotify?: boolean): Promise<void> | void {
+    if (isCocNvim) return this[isNotify ? 'notify' : 'request'](`${this.prefix}set_option_value`, [name, value, { scope: 'local', win: this.id }])
+    return this[isNotify ? 'notify' : 'request'](`${this.prefix}set_option`, [name, value])
   }
 
   /** Get current buffer of window */
