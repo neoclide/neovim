@@ -60,7 +60,7 @@ export class Neovim extends BaseApi {
 
   /** Retrieves a scoped option depending on type of `this` */
   public getOption(name: string): Promise<VimValue> {
-    if (isCocNvim) return this.request(`${this.prefix}get_option_value`, [name])
+    if (isCocNvim) return this.request(`${this.prefix}get_option_value`, [name, {}])
     return super.getOption(name)
   }
 
