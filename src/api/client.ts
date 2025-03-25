@@ -260,6 +260,12 @@ export class NeovimClient extends Neovim {
 
   private handleNotification(method: string, args: VimValue[]): void {
     if (method.endsWith('_event')) {
+      if (method == 'vim_buf_change_event') {
+        const id = args[0] as number
+        const bufferMap = this.attachedBuffers.get(id)
+        const cbs = bufferMap.get('vim_lines') || []
+        cbs.forEach(cb => cb(...args))
+      }
       if (method.startsWith('nvim_buf_')) {
         const shortName = method.replace(/nvim_buf_(.*)_event/, '$1')
         const { id } = args[0] as Buffer
