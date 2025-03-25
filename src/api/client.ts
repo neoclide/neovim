@@ -265,6 +265,7 @@ export class NeovimClient extends Neovim {
         const bufferMap = this.attachedBuffers.get(id)
         const cbs = bufferMap.get('vim_lines') || []
         cbs.forEach(cb => cb(...args))
+        return
       }
       if (method.startsWith('nvim_buf_')) {
         const shortName = method.replace(/nvim_buf_(.*)_event/, '$1')
