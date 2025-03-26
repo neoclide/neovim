@@ -262,6 +262,7 @@ export class NeovimClient extends Neovim {
     if (method.endsWith('_event')) {
       if (method == 'vim_buf_change_event') {
         const id = args[0] as number
+        if (!this.attachedBuffers.has(id)) return
         const bufferMap = this.attachedBuffers.get(id)
         const cbs = bufferMap.get('vim_lines') || []
         cbs.forEach(cb => cb(...args))
