@@ -18,7 +18,7 @@ export interface BufferHighlight {
 
 export interface VirtualTextOption {
   /**
-   * Used on vim9 only.
+   * Used on vim9 and neovim >= 0.10.0.
    */
   col?: number
   /**
@@ -29,6 +29,10 @@ export interface VirtualTextOption {
    * nvim and vim.
    */
   text_align?: 'after' | 'right' | 'below' | 'above'
+  /**
+   * neovim only, right_gravity of nvim_buf_set_extmark.
+   */
+  right_gravity?: boolean
   /**
    * neovim only
    */
