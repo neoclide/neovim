@@ -1,7 +1,7 @@
 import { NeovimClient } from '../api'
 import { isCocNvim } from '../utils/constants'
 import Connection from './connection'
-const func = isCocNvim ? 'coc#api#call' : 'nvim#api#call'
+const func = isCocNvim ? 'coc#api#Call' : 'nvim#api#call'
 
 export default class Request {
   private method: string
@@ -14,7 +14,8 @@ export default class Request {
 
   public request(method: string, args: any[] = []): void {
     this.method = method
-    this.connection.call(func, [method.slice(5), args], this.id)
+    const fn = method[5].toUpperCase() + method.slice(6)
+    this.connection.call(func, [fn, args], this.id)
   }
 
   public callback(client: NeovimClient, err: any, result: any): void {

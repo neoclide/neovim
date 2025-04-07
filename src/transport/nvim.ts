@@ -164,16 +164,12 @@ export class NvimTransport extends Transport {
     )
   }
 
-  protected createResponse(method: string, requestId: number): Response {
+  protected createResponse(_method: string, requestId: number): Response {
     let { encodeStream } = this
     let startTs = Date.now()
     let called = false
-    let timer = setTimeout(() => {
-      this.debug(`request to client cost more than 1s`, requestId)
-    }, 1000)
     return {
       send: (resp: any, isError?: boolean): void => {
-        clearTimeout(timer)
         if (called || !this.attached) return
         this.debug('response of client:', requestId, `${Date.now() - startTs}ms`, resp, isError == true)
         called = true

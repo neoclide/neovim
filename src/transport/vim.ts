@@ -4,6 +4,7 @@ import { ILogger } from '../utils/logger'
 import Transport, { Response } from './base'
 import Connection from './connection'
 import Request from './request'
+const notifyMethod = isCocNvim ? 'coc#api#Notify' : 'nvim#api#notify'
 
 export class VimTransport extends Transport {
   private pending: Map<number, Request> = new Map()
@@ -11,7 +12,6 @@ export class VimTransport extends Transport {
   private connection: Connection
   private attached = false
   private client: NeovimClient
-  private notifyMethod: string
   /**
    * Cached error message
    */
@@ -23,7 +23,6 @@ export class VimTransport extends Transport {
 
   constructor(logger: ILogger) {
     super(logger, true)
-    this.notifyMethod = isCocNvim ? 'coc#api#notify' : 'nvim#api#notify'
   }
 
   public attach(
@@ -117,20 +116,20 @@ export class VimTransport extends Transport {
       } else {
         let text = this.outText + args[0].toString()
         this.outText = ''
-        this.connection.call(this.notifyMethod, [fname, [text]])
+        this.connection.call(notifyMethod, [fname, [text]])
       }
       return
     }
     if (fname == 'err_writeln') {
       let text = this.errText + args[0].toString()
       this.errText = ''
-      this.connection.call(this.notifyMethod, [fname, [text]])
+      this.connection.call(notifyMethod, [fname, [text]])
       return
     }
-    this.connection.call(this.notifyMethod, [fname, args])
+    this.connection.call(notifyMethod, [fname, args])
   }
 
-  protected createResponse(method: string, requestId: number): Response {
+  protected createResponse(_method: string, requestId: number): Response {
     let called = false
     let { connection } = this
     // let startTs = Date.now()
