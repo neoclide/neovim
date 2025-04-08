@@ -1,10 +1,10 @@
 import { ApiInfo, VimValue } from '../types'
+import { isCocNvim } from '../utils/constants'
 import { BaseApi } from './Base'
 import { Buffer } from './Buffer'
 import { Tabpage } from './Tabpage'
 import { Window } from './Window'
 import { FloatOptions, KeymapOption } from './types'
-import { isCocNvim } from '../utils/constants'
 
 export interface UiAttachOptions {
   rgb?: boolean

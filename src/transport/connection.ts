@@ -96,7 +96,11 @@ export default class Connection extends Emitter {
     this.send(['ex', cmd])
   }
 
-  public expr(expr: string): void {
+  public expr(expr: string, requestId?: number): void {
+    if (typeof requestId === 'number') {
+      this.send(['expr', expr, requestId])
+      return
+    }
     this.send(['expr', expr])
   }
 

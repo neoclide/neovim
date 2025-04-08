@@ -1,5 +1,6 @@
 import Transport from '../transport/base'
 import { VimValue } from '../types'
+import { isVim } from '../utils/constants'
 import { NeovimClient } from './client'
 
 export interface BaseConstructorOptions {
@@ -38,7 +39,7 @@ export class BaseApi {
     }
   }
 
-  public async request(name: string, args: any[] = [], skipConvert = false): Promise<any> {
+  public async request(name: string, args: any[] = [], skipConvert = false, skipErrorLog = false): Promise<any> {
     Error.captureStackTrace(args)
     const self = this
     return new Promise<any>((resolve, reject) => {
@@ -46,9 +47,8 @@ export class BaseApi {
       this.transport.request(name, converted, (err: any, res: any) => {
         if (err) {
           let e = new Error(err[1])
-          if (!name.endsWith('get_var')) {
-            let stack = (args as any).stack
-            e.stack = `Error: request error on "${name}" - ${err[1]}\n` + stack.split(/\r?\n/).slice(3).join('\n')
+          if (!skipErrorLog) {
+            e.stack = `Error: request error on "${name}" - ${err[1]}\n` + args['stack'].split(/\r?\n/).slice(3).join('\n')
             this.client.logError(`request error on "${name}"`, converted.map(o => o === self ? self.data : o), e)
           }
           reject(e)
@@ -62,7 +62,7 @@ export class BaseApi {
   protected getArgsByPrefix(args: any[]): any[] {
     // Check if class is Neovim and if so, should not send `this` as first arg
     if (this.prefix !== 'nvim_' && args[0] !== this) {
-      let id = this.transport.isVim ? this.data : this
+      let id = isVim ? this.data : this
       return [id, ...args]
     }
     return args
@@ -70,7 +70,7 @@ export class BaseApi {
 
   /** Retrieves a scoped variable depending on type (using `this.prefix`) */
   public getVar(name: string): Promise<VimValue> {
-    return this.request(`${this.prefix}get_var`, [name]).then(
+    return this.request(`${this.prefix}get_var`, [name], false, true).then(
       res => res,
       _err => {
         return null

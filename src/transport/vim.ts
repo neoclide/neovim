@@ -85,10 +85,7 @@ export class VimTransport extends Transport {
     if (!this.attached) return cb([0, 'transport disconnected'])
     let id = this.nextRequestId
     this.nextRequestId = this.nextRequestId - 1
-    // let startTs = Date.now()
-    // if (debug) this.debug(`Send request "${method}" (${id}) to vim: `, args)
     let req = new Request(this.connection, (err, res) => {
-      // if (debug) this.debug(`Receive response "${method}" (${id}) from vim ${Date.now() - startTs}ms`, err ?? res)
       cb(err, res)
     }, id)
     this.pending.set(id, req)
