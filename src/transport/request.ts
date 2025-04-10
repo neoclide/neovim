@@ -14,8 +14,7 @@ export default class Request {
 
   public request(method: string, args: any[] = []): void {
     this.method = method
-    const fn = method[5].toUpperCase() + method.slice(6)
-    this.connection.call(func, [fn, args], this.id)
+    this.connection.call(func, [method.slice(5), args], this.id)
   }
 
   public callback(client: NeovimClient, err: any, result: any): void {
