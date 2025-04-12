@@ -1,6 +1,6 @@
 import { Buffer } from './Buffer'
-import { Window } from './Window'
 import { Tabpage } from './Tabpage'
+import { Window } from './Window'
 
 export interface Disposable {
   /**
@@ -16,6 +16,7 @@ export interface KeymapOption {
   script?: boolean
   expr?: boolean
   unique?: boolean
+  special?: boolean
 }
 
 export enum ExtType {
