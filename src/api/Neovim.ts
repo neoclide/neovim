@@ -86,10 +86,7 @@ export class Neovim extends BaseApi {
   }
 
   public createNamespace(name = ""): Promise<number> {
-    if (isCocNvim) {
-      name = name.startsWith('coc-') ? name.slice(4) : name
-      return this.request(`${this.prefix}call_function`, ['coc#highlight#create_namespace', [name]])
-    }
+    if (isCocNvim) name = name.startsWith('coc-') ? name : `coc-${name}`
     return this.request(`${this.prefix}create_namespace`, [name])
   }
 

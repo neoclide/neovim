@@ -1,6 +1,8 @@
 /**
  * Handles attaching transport
  */
+import { EventEmitter } from 'events'
+import Transport from '../transport/base'
 import { NvimTransport } from '../transport/nvim'
 import { VimTransport } from '../transport/vim'
 import { AtomicResult, VimValue } from '../types'
@@ -10,8 +12,6 @@ import { Buffer } from './Buffer'
 import { Neovim } from './Neovim'
 import { Tabpage } from './Tabpage'
 import { Window } from './Window'
-import { EventEmitter } from 'events'
-import Transport from '../transport/base'
 
 export type Callback = (err?: Error | null, res?: any) => void
 
