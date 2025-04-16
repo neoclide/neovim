@@ -1,7 +1,6 @@
-if exists('g:did_node_rpc_loaded') || v:version < 800 || has('nvim')
+if has('nvim')
   finish
 endif
-let g:did_node_rpc_loaded = 1
 
 let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has("win32") || has("win64")
@@ -28,7 +27,7 @@ function! s:on_exit(job, status)
 endfunction
 
 " used for test purpose.
-function! nvim#rpc#start_server(file) abort
+function! nvim#rpc#start_server(...) abort
   if !empty(s:channel)
     let state = ch_status(s:channel)
     if state ==# 'open' || state ==# 'buffered'
@@ -36,23 +35,37 @@ function! nvim#rpc#start_server(file) abort
       return 1
     endif
   endif
-  let command =  ['node', a:file]
-  let options = {
-        \ 'in_mode': 'json',
-        \ 'out_mode': 'json',
-        \ 'err_mode': 'nl',
-        \ 'noblock': 1,
-        \ 'callback': function('s:on_notify'),
-        \ 'err_cb': function('s:on_error'),
-        \ 'exit_cb': function('s:on_exit'),
-        \ 'timeout': 30000,
-        \ 'env': {
-        \   'VIM_NODE_RPC': 1,
-        \ }
-        \}
-  let job = job_start(command, options)
-  let s:channel = job_getchannel(job)
-  let status = ch_status(job)
+  let file = get(a:, 1, '')
+  if !empty(file)
+    let options = {
+          \ 'in_mode': 'json',
+          \ 'out_mode': 'json',
+          \ 'err_mode': 'nl',
+          \ 'noblock': 1,
+          \ 'callback': function('s:on_notify'),
+          \ 'err_cb': function('s:on_error'),
+          \ 'exit_cb': function('s:on_exit'),
+          \ 'timeout': 30000,
+          \ 'env': {
+          \   'VIM_NODE_RPC': 1,
+          \ }
+          \}
+    let job = job_start(['node', a:file], options)
+    let s:channel = job_getchannel(job)
+  elseif exists('$NVIM_REMOTE_ADDRESS')
+    let address = $NVIM_REMOTE_ADDRESS
+    let address = address =~# ':\d\+$' ? address : 'unix:'.address
+    let s:channel = ch_open(address, {
+      \ 'mode': 'json',
+      \ 'close_cb': {_ -> s:on_channel_close()},
+      \ 'noblock': 1,
+      \ 'timeout': 1000,
+      \ })
+  else
+    echohl Error | echon 'Unable to start server' | echohl None
+    return
+  endif
+  let status = ch_status(s:channel)
   if status !=# 'open'
     echohl Error | echon '[node-client] failed to start node-client service!' | echohl None
     return
@@ -80,4 +93,8 @@ endfunction
 
 function! nvim#rpc#open_log()
   execute 'vs '.s:logfile
+endfunction
+
+function! s:on_channel_close() abort
+  echohl Error | echon 'Channel closed' | echohl None
 endfunction

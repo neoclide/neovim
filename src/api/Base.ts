@@ -39,20 +39,6 @@ export class BaseApi {
     }
   }
 
-  public async vimRequest(name: 'call' | 'eval', args: any[] = []): Promise<any> {
-    Error.captureStackTrace(args)
-    return new Promise<any>((resolve, reject) => {
-      this.transport.vimRequest(name, args).then(res => {
-        resolve(res)
-      }, err => {
-        let e = new Error(err[1])
-        e.stack = `Error: vim "${name}" error - ${err[1]}\n` + args['stack'].split(/\r?\n/).slice(3).join('\n')
-        this.client.logError(`request error on "${name}"`, args, e)
-        reject(e)
-      })
-    })
-  }
-
   public async request(name: string, args: any[] = [], skipConvert = false, skipErrorLog = false): Promise<any> {
     Error.captureStackTrace(args)
     const self = this

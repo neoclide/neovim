@@ -1,0 +1,14 @@
+set nocompatible
+
+set hidden
+set noswapfile
+set nobackup
+set cmdheight=2
+set shiftwidth=2
+set updatetime=300
+set noshowmode
+set shortmess=aFtW
+
+execute 'set runtimepath+='.expand('<sfile>:h:h:h')
+
+call nvim#rpc#start_server()

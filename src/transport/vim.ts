@@ -103,21 +103,24 @@ export class VimTransport extends Transport {
 
   public vimRequest(command: 'call' | 'eval', args: any[]): Promise<any> {
     if (!this.attached) return Promise.reject(new Error('transport disconnected'))
+    Error.captureStackTrace(args)
     let id = this.nextRequestId
     this.nextRequestId = this.nextRequestId - 1
     return new Promise((resolve, reject) => {
       let req = new Request(this.connection, (err, res) => {
-        if (err) return reject(err)
-        if (res === 'ERROR') {
-          this.logger.error('')
+        if (!err && res === 'ERROR') {
           if (command === 'eval') {
-            reject(new Error(`Invalid expression "${args[0]}", checkout v:errmsg`))
+            err = new Error(`Invalid expression "${args[0]}", checkout v:errmsg`)
           } else {
-            reject(new Error(`Error on function "${args[0]}", checkout v:errmsg"`))
+            err = new Error(`Error on function "${args[0]}", checkout v:errmsg"`)
           }
+        }
+        if (err) {
+          err.stack = `Error: vim "${command}" error - ${err}\n` + args['stack'].split(/\r?\n/).slice(3).join('\n')
+          this.client.logError(`Error on vim command "${command}"`, args, err)
+          reject(err)
           return
         }
-        // TODO maybe need JSON.parse
         resolve(res)
       }, id)
       this.pending.set(id, req)
