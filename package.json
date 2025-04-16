@@ -1,6 +1,6 @@
 {
   "name": "@chemzqm/neovim",
-  "description": "NodeJS client API for vim8 and neovim",
+  "description": "NodeJS client API for vim9 and neovim",
   "version": "6.2.3",
   "homepage": "https://github.com/chemzqm/node-client",
   "authors": [
@@ -37,6 +37,7 @@
     "@chemzqm/msgpack-lite": "^0.1.29"
   },
   "devDependencies": {
+    "@swc/jest": "^0.2.37",
     "@types/jest": "^29.5.14",
     "@types/msgpack-lite": "^0.1.8",
     "@types/node": "^17.0.14",
@@ -44,8 +45,7 @@
     "eslint": "^9.24.0",
     "globals": "^16.0.0",
     "jest": "^29.7.0",
-    "ts-jest": "^29.3.0",
-    "typescript": "^4.9.3",
+    "typescript": "^5.5.4",
     "which": "^2.0.2"
   },
   "scripts": {
@@ -65,9 +65,14 @@
       "node"
     ],
     "transform": {
-      "^.+\\.tsx?$": "ts-jest"
+      "^.+\\.tsx?$": [
+        "@swc/jest"
+      ]
     },
-    "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.ts$",
+    "watchman": false,
+    "clearMocks": true,
+    "testEnvironment": "node",
+    "testRegex": "src/__tests__/.*\\.(test|spec)\\.ts$",
     "coverageDirectory": "./coverage/"
   },
   "keywords": [

@@ -1,20 +1,6 @@
 import * as cp from 'child_process'
-// eslint-disable-next-line import/no-extraneous-dependencies
-import * as which from 'which'
 import { Neovim } from '../api'
-import { attach } from './attach'
-// import { pack, Packr, addExtension } from 'msgpackr'
-
-try {
-  which.sync('nvim')
-} catch (e) {
-  // eslint-disable-next-line no-console
-  console.error(
-    'A Neovim installation is required to run the tests',
-    '(see https://github.com/neovim/neovim/wiki/Installing)'
-  )
-  process.exit(1)
-}
+import { attach } from '../attach/attach'
 
 describe('Nvim Promise API', () => {
   let proc
@@ -58,32 +44,6 @@ describe('Nvim Promise API', () => {
     requests = []
     notifications = []
   })
-
-  // it('can pack data', async () => {
-  //   addExtension({
-  //     Class: Buffer,
-  //     type: 0,
-  //     write(instance) {
-  //       console.log(33)
-  //       return instance.id
-  //     },
-  //     read(data) {
-  //       return new Buffer({
-  //         transport: undefined,
-  //         client: undefined,
-  //         data,
-  //       })
-  //     }
-  //   })
-  //   let packer = new Packr({
-  //     useRecords: false,
-  //     encodeUndefinedAsNil: false,
-  //     moreTypes: false
-  //   })
-  //   let b = new Buffer({ data: 3 })
-  //   let buf = packer.encode([b])
-  //   console.log(buf)
-  // })
 
   it('can send requests and receive response', async () => {
     const result = await nvim.eval('{"k1": "v1", "k2": 2}')
