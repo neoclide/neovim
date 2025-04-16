@@ -45,7 +45,7 @@ function! nvim#rpc#start_server(...) abort
           \ 'callback': function('s:on_notify'),
           \ 'err_cb': function('s:on_error'),
           \ 'exit_cb': function('s:on_exit'),
-          \ 'timeout': 30000,
+          \ 'timeout': 3000,
           \ 'env': {
           \   'VIM_NODE_RPC': 1,
           \ }
@@ -74,7 +74,7 @@ function! nvim#rpc#start_server(...) abort
 endfunction
 
 function! nvim#rpc#request(method, args) abort
-  let res = ch_evalexpr(s:channel, [a:method, a:args], {'timeout': 30000})
+  let res = ch_evalexpr(s:channel, [a:method, a:args], {'timeout': 3000})
   if type(res) == 1 && res ==# '' | return '' | endif
   let [l:errmsg, res] =  res
   if !empty(l:errmsg)

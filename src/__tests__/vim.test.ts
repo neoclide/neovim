@@ -1,6 +1,6 @@
+process.env.VIM_NODE_RPC = '1'
 import { NeovimClient } from '../api/client'
 
-process.env.VIM_NODE_RPC = '1'
 const helper = require('./helper')
 
 let nvim: NeovimClient
