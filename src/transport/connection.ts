@@ -3,6 +3,8 @@ import { createLogger } from '../utils/logger'
 const logger = createLogger('connection')
 const NR_CODE = 10
 
+export type VimCommands = 'expr' | 'call' | 'ex' | 'redraw'
+
 // vim connection by using channel feature
 export default class Connection extends Emitter {
   private clean: () => void
@@ -13,7 +15,7 @@ export default class Connection extends Emitter {
     let cached: Buffer[] = []
     let hasCache = false
     readable.once('data', buf => {
-      if (!Buffer.isBuffer(buf)) throw new Error(`Vim connection expect buffer from readable stream.`)
+      if (!Buffer.isBuffer(buf)) throw new Error(`Vim connection expect Buffer from readable stream.`)
     })
     // should be utf8 encoding.
     let onData = (buf: Buffer) => {
@@ -56,8 +58,7 @@ export default class Connection extends Emitter {
     try {
       arr = JSON.parse(str)
     } catch (e) {
-      // tslint:disable-next-line: no-console
-      console.error(`Invalid data from vim: ${str}`)
+      logger.error(`Invalid data from vim: ${str}`)
       return
     }
     // request, notification, response
@@ -92,7 +93,7 @@ export default class Connection extends Emitter {
     this.send(['redraw', force ? 'force' : ''])
   }
 
-  public command(cmd: string): void {
+  public ex(cmd: string): void {
     this.send(['ex', cmd])
   }
 

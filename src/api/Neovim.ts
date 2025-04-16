@@ -1,5 +1,5 @@
 import { ApiInfo, VimValue } from '../types'
-import { isCocNvim } from '../utils/constants'
+import { isCocNvim, isVim } from '../utils/constants'
 import { BaseApi } from './Base'
 import { Buffer } from './Buffer'
 import { Tabpage } from './Tabpage'
@@ -8,17 +8,11 @@ import { FloatOptions, KeymapOption } from './types'
 
 export interface UiAttachOptions {
   rgb?: boolean
-  // eslint-disable-next-line camelcase
   ext_popupmenu?: boolean
-  // eslint-disable-next-line camelcase
   ext_tabline?: boolean
-  // eslint-disable-next-line camelcase
   ext_wildmenu?: boolean
-  // eslint-disable-next-line camelcase
   ext_cmdline?: boolean
-  // eslint-disable-next-line camelcase
   ext_linegrid?: boolean
-  // eslint-disable-next-line camelcase
   ext_hlstate?: boolean
 }
 
@@ -262,6 +256,34 @@ export class Neovim extends BaseApi {
     ])
   }
 
+  /**
+   * Use direct call on vim9
+   */
+  public callVim(fname: string, args?: VimValue | VimValue[]): Promise<unknown>
+  public callVim(fname: string, args: VimValue | VimValue[], isNotify: true): void
+  public callVim(fname: string, args: VimValue | VimValue[] = [], isNotify?: boolean): Promise<unknown> | void {
+    if (!isVim) return this.call(fname, args, isNotify as any)
+    const _args = getArgs(args)
+    if (isNotify) return this.transport.vimCommand('call', fname, _args)
+    return this.transport.vimRequest('call', [fname, _args])
+  }
+
+  /**
+   * Use direct expr command on vim9
+   */
+  public evalVim(expr: string): Promise<unknown> {
+    if (!isVim) return this.request(`${this.prefix}eval`, [expr])
+    return this.transport.vimRequest('eval', [expr])
+  }
+
+  /**
+   * Use direct ex on vim9
+   */
+  public exVim(arg: string): void {
+    if (!isVim) return this.notify(`${this.prefix}command`, [arg])
+    this.transport.vimCommand('ex', arg)
+  }
+
   /** Call a vim function */
   public call(fname: string, args?: VimValue | VimValue[]): Promise<unknown>
   public call(fname: string, args: VimValue | VimValue[], isNotify: true): null
@@ -283,7 +305,7 @@ export class Neovim extends BaseApi {
       this.notify(`${this.prefix}call_function`, ['coc#util#timer', [fname, _args]])
       return null
     }
-    if (this.transport.isVim) {
+    if (isVim) {
       this.notify(`${this.prefix}call_function`, ['coc#util#timer', [fname, _args]])
       return new Promise(resolve => {
         setTimeout(() => {

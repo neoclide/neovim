@@ -164,6 +164,14 @@ export class NvimTransport extends Transport {
     )
   }
 
+  public vimCommand(command, ..._args: any[]): void {
+    throw new Error(`Command "${command}"  not exists on nvim`)
+  }
+
+  public vimRequest(command, _args: any[]): Promise<any> {
+    throw new Error(`Command "${command}"  not exists on nvim`)
+  }
+
   protected createResponse(_method: string, requestId: number): Response {
     let { encodeStream } = this
     let startTs = Date.now()

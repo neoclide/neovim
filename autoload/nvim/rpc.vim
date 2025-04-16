@@ -27,7 +27,7 @@ function! s:on_exit(job, status)
   let s:channel = v:null
 endfunction
 
-" use for test purpose.
+" used for test purpose.
 function! nvim#rpc#start_server(file) abort
   if !empty(s:channel)
     let state = ch_status(s:channel)
@@ -41,6 +41,7 @@ function! nvim#rpc#start_server(file) abort
         \ 'in_mode': 'json',
         \ 'out_mode': 'json',
         \ 'err_mode': 'nl',
+        \ 'noblock': 1,
         \ 'callback': function('s:on_notify'),
         \ 'err_cb': function('s:on_error'),
         \ 'exit_cb': function('s:on_exit'),
@@ -49,9 +50,6 @@ function! nvim#rpc#start_server(file) abort
         \   'VIM_NODE_RPC': 1,
         \ }
         \}
-  if has("patch-8.1.350")
-    let options['noblock'] = 1
-  endif
   let job = job_start(command, options)
   let s:channel = job_getchannel(job)
   let status = ch_status(job)

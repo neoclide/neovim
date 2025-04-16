@@ -1,4 +1,5 @@
 set nocompatible
+let $NODE_CLIENT_LOG_LEVEL = 'debug'
 
 let s:root = expand('<sfile>:h')
 let g:node_client_debug = 1

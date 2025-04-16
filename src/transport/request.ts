@@ -5,6 +5,7 @@ const func = isCocNvim ? 'coc#api#Call' : 'nvim#api#call'
 
 export default class Request {
   private method: string
+  private _direct = false
   constructor(
     private connection: Connection,
     private cb: Function,
@@ -12,13 +13,30 @@ export default class Request {
   ) {
   }
 
+  public get isDirect(): boolean {
+    return this._direct
+  }
+
   public request(method: string, args: any[] = []): void {
     this.method = method
     this.connection.call(func, [method.slice(5), args], this.id)
   }
 
+  public call(method: string, args: any[] = []): void {
+    this._direct = true
+    this.method = 'call'
+    this.connection.call(method, args, this.id)
+  }
+
+  public expr(expr: string): void {
+    this._direct = true
+    this.method = 'expr'
+    this.connection.expr(expr, this.id)
+  }
+
   public callback(client: NeovimClient, err: any, result: any): void {
     let { method, cb } = this
+    // error type and error string
     if (err) return cb([0, err.toString()])
     switch (method) {
       case 'nvim_list_wins':

@@ -2,7 +2,7 @@ import { NeovimClient } from '../api'
 import { isCocNvim } from '../utils/constants'
 import { ILogger } from '../utils/logger'
 import Transport, { Response } from './base'
-import Connection from './connection'
+import Connection, { VimCommands } from './connection'
 import Request from './request'
 const notifyMethod = isCocNvim ? 'coc#api#Notify' : 'nvim#api#notify'
 
@@ -53,11 +53,15 @@ export class VimTransport extends Transport {
         this.pending.delete(id)
         let err = null
         let result = null
-        if (!Array.isArray(obj)) {
-          err = obj
+        if (req.isDirect) {
+          result = obj
         } else {
-          err = obj[0]
-          result = obj[1]
+          if (!Array.isArray(obj)) {
+            err = obj
+          } else {
+            err = obj[0]
+            result = obj[1]
+          }
         }
         req.callback(this.client, err, result)
       }
@@ -76,6 +80,53 @@ export class VimTransport extends Transport {
       req.callback(this.client, 'connection disconnected', null)
     }
     this.pending.clear()
+  }
+
+  public vimCommand(command: VimCommands, ...args: any[]): void {
+    switch (command) {
+      case 'expr':
+        this.connection.expr(args[0])
+        break
+      case 'call':
+        this.connection.call(args[0], args[1])
+        break
+      case 'ex':
+        this.connection.ex(args[0])
+        break
+      case 'redraw':
+        this.connection.redraw(args[0])
+        break
+      default:
+        throw new Error(`command "${command}" not exists`)
+    }
+  }
+
+  public vimRequest(command: 'call' | 'eval', args: any[]): Promise<any> {
+    if (!this.attached) return Promise.reject(new Error('transport disconnected'))
+    let id = this.nextRequestId
+    this.nextRequestId = this.nextRequestId - 1
+    return new Promise((resolve, reject) => {
+      let req = new Request(this.connection, (err, res) => {
+        if (err) return reject(err)
+        if (res === 'ERROR') {
+          this.logger.error('')
+          if (command === 'eval') {
+            reject(new Error(`Invalid expression "${args[0]}", checkout v:errmsg`))
+          } else {
+            reject(new Error(`Error on function "${args[0]}", checkout v:errmsg"`))
+          }
+          return
+        }
+        // TODO maybe need JSON.parse
+        resolve(res)
+      }, id)
+      this.pending.set(id, req)
+      if (command === 'call') {
+        req.call(args[0], args[1])
+      } else {
+        req.expr(args[0])
+      }
+    })
   }
 
   /**

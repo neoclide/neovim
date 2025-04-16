@@ -189,11 +189,11 @@ export class NeovimClient extends Neovim {
   }
 
   /**
-   * Invoke redraw on vim.
+   * Invoke redraw on vim, must called when screen need update.
    */
   public redrawVim(force?: boolean): void {
     if (!this.isVim) return
-    this.transport.notify('nvim_command', ['redraw' + (force ? '!' : '')])
+    this.transport.vimCommand('redraw', force)
   }
 
   /** Attaches msgpack to read/write streams * */

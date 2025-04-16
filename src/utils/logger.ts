@@ -1,10 +1,8 @@
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { inspect } from 'util'
 import { Writable } from 'stream'
-
-const debugging = process.env.COC_NODE_CLIENT_DEBUG == '1' && process.env.COC_TESTER == '1'
+import { inspect } from 'util'
 
 export interface ILogger {
   debug: (data: string, ...meta: any[]) => void
@@ -30,6 +28,7 @@ function getLogFile(): string {
   return path.join(os.tmpdir(), `node-client-${process.pid}.log`)
 }
 
+const debugging = process.env.COC_NODE_CLIENT_DEBUG == '1' && process.env.COC_TESTER == '1'
 const LOG_FILE_PATH = getLogFile()
 export const level = debugging ? 'debug' : process.env.NODE_CLIENT_LOG_LEVEL || 'info'
 
@@ -59,6 +58,7 @@ function toObject(arg: any): any {
 function toString(arg: any): string {
   if (debugging) return inspect(arg, { depth: null, colors: true, compact: false })
   if (arg == null) return String(arg)
+  if (arg instanceof Error) return arg.stack
   if (typeof arg == 'object') return JSON.stringify(arg, null, 2)
   return String(arg)
 }
@@ -71,19 +71,20 @@ function toTimeString(currentTime: Date): string {
   return `${toTwoDigits(currentTime.getHours())}:${toTwoDigits(currentTime.getMinutes())}:${toTwoDigits(currentTime.getSeconds())}.${toThreeDigits(currentTime.getMilliseconds())}`
 }
 
+let writableStream: Writable = undefined
+
 class Logger implements ILogger {
-  private _stream: Writable
   constructor(private name: string) {
   }
 
   private get stream(): Writable {
-    if (this._stream) return this._stream
+    if (writableStream) return writableStream
     if (debugging) {
-      this._stream = process.stdout
+      writableStream = process.stdout
     } else {
-      this._stream = fs.createWriteStream(LOG_FILE_PATH, { encoding: 'utf8' })
+      writableStream = fs.createWriteStream(LOG_FILE_PATH, { encoding: 'utf8' })
     }
-    return this._stream
+    return writableStream
   }
 
   private getText(level: string, data: string, meta: any[]): string {

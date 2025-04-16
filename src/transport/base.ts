@@ -1,7 +1,8 @@
 import { EventEmitter } from 'events'
-import { createLogger, ILogger, level } from '../utils/logger'
 import { NeovimClient } from '../api'
 import { AtomicResult } from '../types'
+import { createLogger, ILogger, level } from '../utils/logger'
+import type { VimCommands } from './connection'
 const debug = level === 'debug'
 const logger = createLogger('transport')
 
@@ -95,6 +96,10 @@ export default abstract class Transport extends EventEmitter {
   public abstract detach(): void
 
   public abstract send(arr: any[]): void
+
+  public abstract vimCommand(command: VimCommands, ...args: any[]): void
+
+  public abstract vimRequest(command: 'call' | 'eval', args: any[]): Promise<any>
 
   public abstract request(method: string, args: any[], cb: Function): any
 
