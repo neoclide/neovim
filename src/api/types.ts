@@ -38,20 +38,23 @@ export interface FloatOptions {
   row: number
   col: number
   style?: 'minimal'
+  zindex?: number
+  mouse?: boolean
   border?:
-    | 'none'
-    | 'single'
-    | 'double'
-    | 'rounded'
-    | 'solid'
-    | 'shadow'
-    | [number]
-    | [number, number]
-    | [number, number, number, number]
-    | [number, number, number, number, number, number, number, number]
+  | 'none'
+  | 'single'
+  | 'double'
+  | 'rounded'
+  | 'solid'
+  | 'shadow'
+  | string
+  | string[]
   title?: string | [string, string]
   title_pos?: 'left' | 'center' | 'right'
   noautocmd?: boolean
+  footer?: string | [string, string]
+  fixed?: boolean
+  hide?: boolean
 }
 
 export interface MetadataType {
