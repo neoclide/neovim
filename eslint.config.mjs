@@ -1,4 +1,4 @@
-import {defineConfig} from "eslint/config"
+import {defineConfig, globalIgnores} from "eslint/config"
 import globals from "globals"
 
 export default defineConfig([

@@ -1,10 +1,9 @@
-/* eslint no-console:0  global-require:0 */
-const { Metadata } = require('../lib/api/types');
-const { Neovim } = require('../lib/api/Neovim');
+const {Metadata} = require('../lib/api/types')
+const {Neovim} = require('../lib/api/Neovim')
 
-const search = process.argv[2] || '';
+const search = process.argv[2] || ''
 
-const findConstructor = name => Metadata.find(obj => name.includes(obj.prefix));
+const findConstructor = name => Metadata.find(obj => name.includes(obj.prefix))
 
 const hasApiMethod = name => {
   // these are ignored because they are implemented, but has a non-normalized name/case
@@ -18,22 +17,22 @@ const hasApiMethod = name => {
       'nvim_buf_detach',
     ].includes(name)
   ) {
-    return true;
+    return true
   }
 
-  let methodName = name;
-  const isSetter = name.includes('_set_');
+  let methodName = name
+  const isSetter = name.includes('_set_')
   const isGetter =
     name.includes('_get_') ||
     name.includes('_is_') ||
     name.includes('_list_') ||
-    name.includes('_current_');
-  const isDelete = name.includes('_del_');
+    name.includes('_current_')
+  const isDelete = name.includes('_del_')
 
   // Strip prefix
-  const mappedConstructor = findConstructor(name);
+  const mappedConstructor = findConstructor(name)
   if (mappedConstructor) {
-    methodName = name.replace(mappedConstructor.prefix, '');
+    methodName = name.replace(mappedConstructor.prefix, '')
   }
   methodName = methodName
     .replace(/^nvim_/, '')
@@ -44,25 +43,25 @@ const hasApiMethod = name => {
     .replace(/_win(s|)/g, '_window$1')
     .replace(/_([a-z])/g, g => g[1].toUpperCase())
     .replace(/buf/g, 'buffer')
-    .replace(/win/g, 'window');
+    .replace(/win/g, 'window')
   const titleMethodName = `${methodName[0].toUpperCase()}${methodName.slice(
     1
-  )}`;
+  )}`
 
   const Constructor =
-    (mappedConstructor && mappedConstructor.constructor) || Neovim;
+    (mappedConstructor && mappedConstructor.constructor) || Neovim
 
   const descriptor = Object.getOwnPropertyDescriptor(
     Constructor.prototype,
     methodName
-  );
+  )
 
   // check property descriptors
   if (
     descriptor &&
     ((isSetter && descriptor.set) || (isGetter && descriptor.get))
   )
-    return true;
+    return true
 
   // check methods
   if (
@@ -79,39 +78,39 @@ const hasApiMethod = name => {
           Constructor.prototype.hasOwnProperty(variation)
       )
   ) {
-    return true;
+    return true
   }
 
-  return false;
-};
+  return false
+}
 
 async function main() {
-  const nvim = await require('./nvim');
-  const results = await nvim.requestApi();
-  const { functions } = results[1];
-  const lines = functions.filter(({ name }) => name.indexOf(search) > -1);
+  const nvim = await require('./nvim')
+  const results = await nvim.requestApi()
+  const {functions} = results[1]
+  const lines = functions.filter(({name}) => name.indexOf(search) > -1)
   const missing = lines
     .filter(metadata => typeof metadata.deprecated_since === 'undefined')
-    .filter(metadata => !hasApiMethod(metadata.name));
+    .filter(metadata => !hasApiMethod(metadata.name))
 
   missing.forEach(metadata => {
-    const params = metadata.parameters.map(p => p[1]);
-    const paramTypes = metadata.parameters.map(p => p[0]);
+    const params = metadata.parameters.map(p => p[1])
+    const paramTypes = metadata.parameters.map(p => p[0])
     console.log(
       `${metadata.name}(${params
         .map((p, i) => `${p}: ${paramTypes[i]}`)
         .join(', ')}): ${metadata.return_type}`
-    );
-    console.log(`    method: ${metadata.method}`);
-    console.log(`    since: ${metadata.since}`);
-    console.log('');
-  });
-  process.exit(missing.length);
+    )
+    console.log(`    method: ${metadata.method}`)
+    console.log(`    since: ${metadata.since}`)
+    console.log('')
+  })
+  process.exit(missing.length)
 }
 
 try {
-  main();
+  main()
 } catch (err) {
-  console.error(err);
-  process.exit(1);
+  console.error(err)
+  process.exit(1)
 }

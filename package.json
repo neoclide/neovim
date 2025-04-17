@@ -51,7 +51,7 @@
   "scripts": {
     "prepare": "npm run build",
     "test": "jest",
-    "test-build": "npm run build && npm run prep-integration-test && jest --runInBand --coverage",
+    "lint": "eslint . --quiet",
     "build": "tsc --pretty -p tsconfig.json",
     "watch": "tsc --pretty -p tsconfig.json --watch true"
   },
@@ -78,7 +78,6 @@
   "keywords": [
     "neovim",
     "neovim-client",
-    "node-host",
     "node-client",
     "nvim",
     "nvim-client",
