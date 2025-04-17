@@ -9,9 +9,10 @@ describe('Nvim Promise API', () => {
   let notifications
 
   beforeAll(async () => {
+    let cmd = process.env.NVIM_COMMAND ?? 'nvim'
     try {
       proc = cp.spawn(
-        'nvim',
+        cmd,
         ['-u', 'NONE', '-N', '--embed', '-c', 'set noswapfile'],
         {
           cwd: __dirname,

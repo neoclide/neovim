@@ -1,5 +1,7 @@
 # neovim-client
 
+<a href="https://github.com/neoclide/neovim/actions"><img alt="Actions" src="https://img.shields.io/github/actions/workflow/status/neoclide/neovim/ci.yml?style=flat-square&branch=master"></a>
+
 Fork of [neovim/node-client](https://github.com/neovim/node-client) which works
 on both vim9 and neovim.
 
@@ -95,7 +97,7 @@ In other terminal and inside this project folder, run command:
 NVIM_REMOTE_ADDRESS=/tmp/client-vim.sock vim -c 'source start.vim'
 ```
 
-`start.vim` add the project directory to vim's `runtimepath` and start the
+`start.vim` add the project directory to vim's `runtimepath` and connect to the
 server.
 
 Not work on windows yet.

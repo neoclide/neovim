@@ -27,7 +27,8 @@ export async function setupVim(): Promise<Neovim> {
     })
     server.listen(address)
   })
-  proc = cp.spawn('vim', ['--clean', '--not-a-term', '-u', vimrc], {
+  let executable = process.env.VIM_COMMAND ?? 'vim'
+  proc = cp.spawn(executable, ['--clean', '--not-a-term', '-u', vimrc], {
     stdio: 'pipe',
     shell: true,
     cwd: __dirname,
