@@ -1,6 +1,6 @@
 # neovim-client
 
-<a href="https://github.com/neoclide/neovim/actions"><img alt="Actions" src="https://img.shields.io/github/actions/workflow/status/neoclide/neovim/ci.yml?style=flat-square&branch=master"></a>
+<a href="https://github.com/neoclide/neovim/actions"><img alt="Actions" src="https://img.shields.io/github/actions/workflow/status/neoclide/neovim/ci.yml?style=flat-square&branch=neoclide"></a>
 
 Fork of [neovim/node-client](https://github.com/neovim/node-client) which works
 on both vim9 and neovim.
