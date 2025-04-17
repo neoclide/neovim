@@ -43,3 +43,20 @@ describe('Vim commands', () => {
   })
 })
 
+
+describe('Vim api', () => {
+  it('should get current buffer, window, tabpage', async () => {
+    let buf = await nvim.buffer
+    expect(buf.id).toBe(1)
+    let win = await nvim.window
+    expect(win.id).toBe(1000)
+    let tabpage = await nvim.tabpage
+    expect(tabpage.id).toBe(1)
+  })
+
+  it('should catch error', async () => {
+    await expect(async () => {
+      await nvim.call('execute', ['undefined'])
+    }).rejects.toThrow(Error)
+  })
+})

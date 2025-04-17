@@ -1,528 +1,1151 @@
-if has('nvim') | finish | endif
-let s:funcs = {}
-let s:prop_id = 1000
-let s:namespace_id = 1
-let s:namespace_cache = {}
+if has('nvim')
+  finish
+endif
+vim9script
+scriptencoding utf-8
 
-" helper {{
-function! s:buf_line_count(bufnr) abort
-  if bufnr('%') == a:bufnr
-    return line('$')
+var namespace_id: number = 1
+final namespace_cache: dict<any> = {}
+var max_src_id: number = 1000
+# bufnr => max textprop id
+final buffer_id: dict<any> = {}
+# srcId => list of types
+final id_types: dict<any> = {}
+var tab_id: number = 1
+final listener_map: dict<any> = {}
+const prop_offset: number = get(g:, 'coc_text_prop_offset', 1000)
+const keymap_arguments: list<string> = ['nowait', 'silent', 'script', 'expr', 'unique', 'special']
+const known_types = ['Number', 'String', 'Funcref', 'List', 'Dictionary', 'Float', 'Boolean', 'None', 'Job', 'Channel', 'Blob']
+const scopes = ['global', 'local']
+# Boolean options of vim 9.1.1134
+const boolean_options: list<string> = ['allowrevins', 'arabic', 'arabicshape', 'autochdir', 'autoindent', 'autoread', 'autoshelldir', 'autowrite', 'autowriteall', 'backup', 'balloonevalterm', 'binary', 'bomb', 'breakindent', 'buflisted', 'cdhome', 'cindent', 'compatible', 'confirm', 'copyindent', 'cursorbind', 'cursorcolumn', 'cursorline', 'delcombine', 'diff', 'digraph', 'edcompatible', 'emoji', 'endoffile', 'endofline', 'equalalways', 'errorbells', 'esckeys', 'expandtab', 'exrc', 'fileignorecase', 'fixendofline', 'foldenable', 'fsync', 'gdefault', 'hidden', 'hkmap', 'hkmapp', 'hlsearch', 'icon', 'ignorecase', 'imcmdline', 'imdisable', 'incsearch', 'infercase', 'insertmode', 'joinspaces', 'langnoremap', 'langremap', 'lazyredraw', 'linebreak', 'lisp', 'list', 'loadplugins', 'magic', 'modeline', 'modelineexpr', 'modifiable', 'modified', 'more', 'number', 'paste', 'preserveindent', 'previewwindow', 'prompt', 'readonly', 'relativenumber', 'remap', 'revins', 'rightleft', 'ruler', 'scrollbind', 'secure', 'shelltemp', 'shiftround', 'shortname', 'showcmd', 'showfulltag', 'showmatch', 'showmode', 'smartcase', 'smartindent', 'smarttab', 'smoothscroll', 'spell', 'splitbelow', 'splitright', 'startofline', 'swapfile', 'tagbsearch', 'tagrelative', 'tagstack', 'termbidi', 'termguicolors', 'terse', 'textauto', 'textmode', 'tildeop', 'timeout', 'title', 'ttimeout', 'ttybuiltin', 'ttyfast', 'undofile', 'visualbell', 'warn', 'weirdinvert', 'wildignorecase', 'wildmenu', 'winfixbuf', 'winfixheight', 'winfixwidth', 'wrap', 'wrapscan', 'write', 'writeany', 'writebackup', 'xtermcodes']
+const window_options = keys(getwinvar(0, '&'))
+const buffer_options = keys(getbufvar(bufnr('%'), '&'))
+
+const API_FUNCTIONS = [
+  'eval',
+  'command',
+  'feedkeys',
+  'command_output',
+  'exec',
+  'input',
+  'create_buf',
+  'strwidth',
+  'out_write',
+  'err_write',
+  'err_writeln',
+  'set_option',
+  'set_var',
+  'set_keymap',
+  'set_option_value',
+  'set_current_line',
+  'set_current_dir',
+  'set_current_buf',
+  'set_current_win',
+  'set_current_tabpage',
+  'get_option',
+  'get_api_info',
+  'get_current_line',
+  'get_var',
+  'get_vvar',
+  'get_current_buf',
+  'get_current_win',
+  'get_current_tabpage',
+  'get_mode',
+  'get_namespaces',
+  'get_option_value',
+  'del_var',
+  'del_keymap',
+  'del_current_line',
+  'list_wins',
+  'list_bufs',
+  'list_runtime_paths',
+  'list_tabpages',
+  'call_atomic',
+  'call_function',
+  'call_dict_function',
+  'create_namespace',
+  'buf_set_option',
+  'buf_get_option',
+  'buf_get_changedtick',
+  'buf_is_valid',
+  'buf_is_loaded',
+  'buf_get_mark',
+  'buf_add_highlight',
+  'buf_clear_namespace',
+  'buf_line_count',
+  'buf_attach',
+  'buf_detach',
+  'buf_get_lines',
+  'buf_set_lines',
+  'buf_set_name',
+  'buf_get_name',
+  'buf_get_var',
+  'buf_set_var',
+  'buf_del_var',
+  'buf_set_keymap',
+  'buf_del_keymap',
+  'win_get_buf',
+  'win_set_buf',
+  'win_get_position',
+  'win_set_height',
+  'win_get_height',
+  'win_set_width',
+  'win_get_width',
+  'win_set_cursor',
+  'win_get_cursor',
+  'win_set_option',
+  'win_get_option',
+  'win_get_var',
+  'win_set_var',
+  'win_del_var',
+  'win_is_valid',
+  'win_get_number',
+  'win_get_tabpage',
+  'win_close',
+  'tabpage_get_number',
+  'tabpage_list_wins',
+  'tabpage_get_var',
+  'tabpage_set_var',
+  'tabpage_del_var',
+  'tabpage_is_valid',
+  'tabpage_get_win',
+]
+
+# helper {{
+# Create a window with bufnr for execute win_execute
+def CreatePopup(bufnr: number): number
+  noa const id = popup_create(bufnr, {
+      \ 'line': 1,
+      \ 'col': &columns,
+      \ 'maxwidth': 1,
+      \ 'maxheight': 1,
+      \ })
+  popup_hide(id)
+  return id
+enddef
+
+def CheckBufnr(bufnr: number): void
+  if bufnr != 0 && !bufexists(bufnr)
+    throw $'Invalid buffer id: {bufnr}'
   endif
-  let lines = getbufline(a:bufnr, 1, '$')
-  return len(lines)
-endfunction
+enddef
 
-function! s:execute(cmd)
-  if a:cmd =~# '^echo'
-    execute a:cmd
-  else
-    silent! execute a:cmd
+def CheckWinid(winid: number): void
+  if winid != 0 && empty(getwininfo(winid))
+    throw $'Invalid window id: {winid}'
   endif
-endfunction
-" }}"
+enddef
 
-" nvim client methods {{
-function! s:funcs.set_current_dir(dir) abort
-  execute 'cd '.a:dir
-endfunction
-
-function! s:funcs.set_var(name, value) abort
-  execute 'let g:'.a:name.'= a:value'
-endfunction
-
-function! s:funcs.del_var(name) abort
-  execute 'unlet g:'.a:name
-endfunction
-
-function! s:funcs.set_option(name, value) abort
-  execute 'let &'.a:name.' = a:value'
-endfunction
-
-function! s:funcs.set_current_buf(bufnr) abort
-  if !bufexists(a:bufnr) | return | endif
-  execute 'buffer '.a:bufnr
-endfunction
-
-function! s:funcs.set_current_win(win_id) abort
-  let [tabnr, winnr] = win_id2tabwin(a:win_id)
-  if tabnr == 0 | return | endif
-  execute 'normal! '.tabnr.'gt'
-  execute winnr.' wincmd w'
-endfunction
-
-function! s:funcs.set_current_tabpage(tabnr) abort
-  execute 'normal! '.a:tabnr.'gt'
-endfunction
-
-function! s:funcs.list_wins() abort
-  return map(getwininfo(), 'v:val["winid"]')
-endfunction
-
-function! s:funcs.call_atomic(calls)
-  let res = []
-  for [key, arglist] in a:calls
-    let name = key[5:]
-    try
-      call add(res, call(s:funcs[name], arglist))
-    catch /.*/
-      return [res, v:exception]
-    endtry
-  endfor
-  return [res, v:null]
-endfunction
-
-function! s:funcs.set_client_info(...) abort
-endfunction
-
-function! s:funcs.subscribe(...) abort
-endfunction
-
-function! s:funcs.unsubscribe(...) abort
-endfunction
-
-function! s:funcs.call_function(method, args) abort
-  return call(a:method, a:args)
-endfunction
-
-function! s:funcs.call_dict_function(dict, method, args) abort
-  return call(a:method, a:args, a:dict)
-endfunction
-
-function! s:funcs.command(command) abort
-  " command that could cause cursor vanish
-  if a:command =~# '^echo' || a:command =~# '^redraw' || a:command =~# '^sign place'
-    call timer_start(0, {-> s:execute(a:command)})
-  else
-    execute a:command
+def GetValidBufnr(id: number): number
+  if id == 0
+    return bufnr('%')
   endif
-endfunction
-
-function! s:funcs.eval(expr) abort
-  return eval(a:expr)
-endfunction
-
-function! s:funcs.get_api_info()
-  let names = nvim#api#func_names()
-  return [1, {'functions': map(names, '{"name": "nvim_".v:val}')}]
-endfunction
-
-function! s:funcs.list_bufs()
-  return map(getbufinfo({'buflisted': 1}), 'v:val["bufnr"]')
-endfunction
-
-function! s:funcs.feedkeys(keys, mode, escape_csi)
-  call feedkeys(a:keys, a:mode)
-endfunction
-
-function! s:funcs.list_runtime_paths()
-  return split(&runtimepath, ',')
-endfunction
-
-function! s:funcs.command_output(cmd)
-  return execute(a:cmd)
-endfunction
-
-function! s:funcs.get_current_line()
-  return getline('.')
-endfunction
-
-function! s:funcs.set_current_line(line)
-  call setline('.', a:line)
-endfunction
-
-function! s:funcs.del_current_line(line)
-  execute 'normal! dd'
-endfunction
-
-function! s:funcs.get_var(var)
-  return get(g:, a:var, v:null)
-endfunction
-
-function! s:funcs.get_vvar(var)
-  return get(v:, a:var, v:null)
-endfunction
-
-function! s:funcs.get_option(name)
-  return eval('&'.a:name)
-endfunction
-
-function! s:funcs.get_current_buf()
-  return bufnr('%')
-endfunction
-
-function! s:funcs.get_current_win()
-  return win_getid()
-endfunction
-
-function! s:funcs.get_current_tabpage()
-  return tabpagenr()
-endfunction
-
-function! s:funcs.list_tabpages()
-  return range(1, tabpagenr('$'))
-endfunction
-
-function! s:funcs.get_mode()
-  return {'blocking': v:false, 'mode': mode()}
-endfunction
-
-function! s:funcs.strwidth(str)
-  return strwidth(a:str)
-endfunction
-
-function! s:funcs.out_write(str)
-  echon a:str
-endfunction
-
-function! s:funcs.err_write(str)
-  echoerr a:str
-endfunction
-
-function! s:funcs.err_writeln(str)
-  echoerr a:str
-endfunction
-
-function! s:funcs.create_namespace(name) abort
-  if empty(a:name)
-    let id = s:namespace_id
-    let s:namespace_id = s:namespace_id + 1
-    return id
-  endif
-  let id = get(s:namespace_cache, a:name, 0)
-  if !id
-    let id = s:namespace_id
-    let s:namespace_id = s:namespace_id + 1
-    let s:namespace_cache[a:name] = id
+  if !bufexists(id)
+    throw $'Invalid buffer id: {id}'
   endif
   return id
-endfunction
-" }}
+enddef
 
-" buffer methods {{
-function! s:funcs.buf_set_option(bufnr, name, val)
-  return setbufvar(a:bufnr, '&'.a:name, a:val)
-endfunction
+def GetValidWinid(id: number): number
+  if id == 0
+    return win_getid()
+  endif
+  if empty(getwininfo(id))
+    throw $'Invalid window id: {id}'
+  endif
+  return id
+enddef
 
-function! s:funcs.buf_get_changedtick(bufnr)
-  return getbufvar(a:bufnr, 'changedtick')
-endfunction
+def CheckKey(dict: dict<any>, key: string): void
+  if !has_key(dict, key)
+    throw $'Key not found: {key}'
+  endif
+enddef
 
-function! s:funcs.buf_is_valid(bufnr)
-  return bufloaded(a:bufnr) ? v:true : v:false
-endfunction
+# TextChanged and callback not fired when using channel on vim.
+def OnTextChange(bufnr: number): void
+  const event = mode() ==# 'i' ? 'TextChangedI' : 'TextChanged'
+  execute $'legacy doautocmd <nomodeline> {event} {bufname(bufnr)}'
+  listener_flush(bufnr)
+enddef
 
-function! s:funcs.buf_get_mark(bufnr, name)
-  let nr = bufnr('%')
-  if a:bufnr != 0 || a:bufnr != nr
-    throw 'buf_get_mark support current buffer only'
+# execute command for bufnr
+def BufExecute(bufnr: number, cmds: list<string>): void
+  var winid = get(win_findbuf(bufnr), 0, -1)
+  var need_close: bool = false
+  if winid == -1
+    winid = CreatePopup(bufnr)
+    need_close = true
   endif
-  return [line("'" . a:name), col("'" . a:name)]
-endfunction
+  win_execute(winid, cmds, 'silent')
+  if need_close
+    noa popup_close(winid)
+  endif
+enddef
 
-function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEnd) abort
-  if !has('textprop')
-    return
+def BufLineCount(bufnr: number): number
+  const info = get(getbufinfo(bufnr), 0, null)
+  if empty(info)
+    throw $'Invalid buffer id: {bufnr}'
   endif
-  let key = 'Coc'.a:hlGroup
-  if empty(prop_type_get(key))
-    call prop_type_add(key, {'highlight': a:hlGroup, 'combine': 1})
-  endif
-  let end = a:colEnd
-  if end == -1
-    let end = strlen(getbufline(a:bufnr, a:line + 1)[0]) + 1
-  endif
-  let id = 0
-  if a:srcId != 0
-    let cached = getbufvar(a:bufnr, 'prop_namespace_'.a:srcId, [])
-    let id = s:prop_id
-    let s:prop_id = id + 1
-    call add(cached, id)
-    call setbufvar(a:bufnr, 'prop_namespace_'.a:srcId, cached)
-  endif
-  call prop_add(a:line + 1, a:colStart + 1, {'length': end - a:colStart, 'bufnr': a:bufnr, 'type': key, 'id': id})
-endfunction
+  return info.loaded == 0 ? 0 : info.linecount
+enddef
 
-function! s:funcs.buf_clear_namespace(bufnr, srcId, startLine, endLine) abort
-  if !has('textprop')
-    return
+def IsPopup(winid: number): bool
+  return index(popup_list(), winid) != -1
+enddef
+
+def TabIdNr(tid: number): number
+  if tid == 0
+    return tabpagenr()
   endif
-  if a:srcId == 0
-    if a:endLine == -1
-      call prop_clear(a:startLine + 1, {'bufnr': a:bufnr})
-    else
-      call prop_clear(a:startLine + 1, a:endLine + 1, {'bufnr': a:bufnr})
+  var result: any = null
+  for nr in range(1, tabpagenr('$'))
+    if gettabvar(nr, '__coc_tid', null) == tid
+      result = nr
     endif
-  else
-    let cached = getbufvar(a:bufnr, 'prop_namespace_'.a:srcId, [])
-    if empty(cached)
-      return
-    endif
-    for id in cached
-      if a:endLine == -1
-        if a:startLine == 0 && a:endLine == -1
-          call prop_remove({'id':id, 'bufnr': a:bufnr})
-        elseif a:endLine != -1
-          call prop_remove({'id':id, 'bufnr': a:bufnr}, a:startLine, a:endLine)
-        else
-          let len = s:buf_line_count(a:bufnr)
-          call prop_remove({'id':id, 'bufnr': a:bufnr}, a:startLine, len)
-        endif
-      else
-      endif
-    endfor
+  endfor
+  if result == null
+    throw $'Invalid tabpage id: {tid}'
   endif
-endfunction
+  return result
+enddef
 
-function! s:funcs.buf_line_count(bufnr) abort
-  return s:buf_line_count(a:bufnr)
-endfunction
-
-function! s:funcs.buf_attach(...)
-  " not supported
-  return 1
-endfunction
-
-function! s:funcs.buf_detach()
-  " not supported
-  return 1
-endfunction
-
-function! s:funcs.buf_get_lines(bufnr, start, end, strict) abort
-  let lines = getbufline(a:bufnr, 1, '$')
-  let start = a:start < 0 ? a:start + 1 : a:start
-  let end = a:end < 0 ? a:end + 1 : a:end
-  if a:strict && end > len(lines)
-    throw 'line number out of range: '. end
+export def TabNrId(nr: number): number
+  var tid = gettabvar(nr, '__coc_tid', -1)
+  if tid == -1
+    tid = tab_id
+    settabvar(nr, '__coc_tid', tid)
+    tab_id += 1
   endif
-  return lines[start : end - 1]
-endfunction
+  return tid
+enddef
 
-function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
-  let replacement = get(a:, 1, [])
-  let lineCount = s:buf_line_count(a:bufnr)
-  let startLnum = a:start >= 0 ? a:start + 1 : lineCount + a:start + 1
-  let end = a:end >= 0 ? a:end : lineCount + a:end + 1
-  let delCount = end - (startLnum - 1)
-  if a:bufnr == bufnr('%')
-    " replace
-    if delCount == len(replacement)
-      call setline(startLnum, replacement)
-    else
-      if len(replacement)
-        call append(startLnum - 1, replacement)
-      endif
-      if delCount
-        let start = startLnum + len(replacement)
-        silent execute start . ','.(start + delCount - 1).'d'
-      endif
-    endif
-  else
-    if exists('*setbufline')
-      " replace
-      if delCount == len(replacement)
-        call setbufline(a:bufnr, startLnum, replacement)
-      else
-        if len(replacement)
-          call appendbufline(a:bufnr, startLnum - 1, replacement)
-        endif
-        if delCount
-          let start = startLnum + len(replacement)
-          call deletebufline(a:bufnr, start, start + delCount - 1)
-        endif
-      endif
-    endif
-  endif
-endfunction
-
-function! s:funcs.buf_set_name(bufnr, name) abort
-  let nr = bufnr('%')
-  if a:bufnr != nr
-    throw 'buf_set_name support current buffer only'
-  else
-    execute '0f'
-    execute 'file '.fnameescape(a:name)
-  endif
-endfunction
-
-function! s:funcs.buf_get_var(bufnr, name)
-  return getbufvar(a:bufnr, a:name)
-endfunction
-
-function! s:funcs.buf_set_var(bufnr, name, val)
-  if !bufloaded(a:bufnr) | return | endif
-  call setbufvar(a:bufnr, a:name, a:val)
-endfunction
-
-function! s:funcs.buf_del_var(bufnr, name)
-  call setbufvar(a:bufnr, a:name, v:null)
-endfunction
-
-function! s:funcs.buf_get_option(bufnr, name)
-  return getbufvar(a:bufnr, '&'.a:name)
-endfunction
-
-function! s:funcs.buf_get_name(bufnr)
-  return bufname(a:bufnr)
-endfunction
-" }}
-
-" window methods {{
-function! s:funcs.win_get_buf(winid)
-  return winbufnr(a:winid)
-endfunction
-
-function! s:funcs.win_get_position(win_id) abort
-  let [row, col] = win_screenpos(a:win_id)
-  if row == 0 && col == 0
-    throw 'Invalid window '.a:win_id
-  endif
-  return [row - 1, col - 1]
-endfunction
-
-function! s:funcs.win_get_height(win_id) abort
-  return winheight(a:win_id)
-endfunction
-
-function! s:funcs.win_get_width(win_id) abort
-  return winwidth(a:win_id)
-endfunction
-
-function! s:funcs.win_get_cursor(win_id) abort
-  let winid = win_getid()
-  call win_gotoid(a:win_id)
-  let pos = [line('.'), col('.')]
-  call win_gotoid(winid)
-  return pos
-endfunction
-
-function! s:funcs.win_get_var(win_id, name) abort
-  return gettabwinvar(0, a:win_id, a:name)
-endfunction
-
-function! s:funcs.win_set_width(win_id, width) abort
-  let winid = win_getid()
-  call win_gotoid(a:win_id)
-  execute 'vertical resize '.a:width
-  call win_gotoid(winid)
-endfunction
-
-function! s:funcs.win_get_option(win_id, name) abort
-  return gettabwinvar(0, a:win_id, '&'.a:name)
-endfunction
-
-function! s:funcs.win_set_height(win_id, height) abort
-  let winnr = win_id2win(a:win_id)
-  if winnr != 0
-    let curr = winnr()
-    if winnr == curr
-      execute 'resize '.a:height
-    else
-      execute winnr.'wincmd w'
-      execute 'resize '.a:height
-      wincmd p
-    endif
-  endif
-endfunction
-
-function! s:funcs.win_set_option(win_id, name, value) abort
-  call setwinvar(a:win_id, '&'.a:name, a:value)
-endfunction
-
-function! s:funcs.win_set_var(win_id, name, value) abort
-  call setwinvar(a:win_id, a:name, a:value)
-endfunction
-
-function! s:funcs.win_del_var(win_id, name) abort
-  call settabwinvar(0, a:win_id, a:name, v:null)
-endfunction
-
-function! s:funcs.win_is_valid(win_id) abort
-  let info = getwininfo(a:win_id)
-  return !empty(info)
-endfunction
-
-function! s:funcs.win_get_number(win_id) abort
-  let info = getwininfo(a:win_id)
-  if !info
-    throw 'Invalid window id '.a:win_id
-  endif
-  return info[0]['winnr']
-endfunction
-
-function! s:funcs.win_set_cursor(win_id, pos) abort
-  let winnr = win_id2win(a:win_id)
-  if winnr != 0
-    let [line, col] = a:pos
-    let curr = winnr()
-    if winnr == curr
-      call cursor(line, col + 1)
-    else
-      execute winnr.'wincmd w'
-      call cursor(line, col + 1)
-      execute curr.'wincmd w'
-    endif
-  endif
-endfunction
-
-function! s:funcs.win_get_tabpage(win_id) abort
-  let info = getwininfo(a:win_id)
-  if !info
-    throw 'Invalid window id '.a:win_id
+def WinTabnr(winid: number): number
+  const info = getwininfo(winid)
+  if empty(info)
+    throw $'Invalid window id: {winid}'
   endif
   return info[0]['tabnr']
-endfunction
-" }}
+enddef
 
-" tabpage methods {{
-function! s:funcs.tabpage_get_number(id)
-  return a:id
+def DeferExecute(cmd: string): void
+  def RunExecute(): void
+    if cmd =~# '^echo'
+      execute cmd
+    else
+      silent! execute $'legacy {cmd}'
+    endif
+  enddef
+  timer_start(0, (..._) => RunExecute())
+enddef
+
+def InspectType(val: any): string
+  return get(known_types, type(val), 'Unknown')
+enddef
+
+def EscapeSpace(text: string): string
+  return substitute(text, ' ', '<space>', 'g')
+enddef
+
+# See :h option-backslash
+def EscapeOptionValue(value: any): string
+  if type(value) == v:t_string
+    return substitute(value, '\( \|\\\)', '\\\1', 'g')
+  endif
+  return string(value)
+enddef
+
+# Check the type like nvim, currently bool option only
+def CheckOptionValue(name: string, value: any): void
+  if index(boolean_options, name) != -1 && type(value) != v:t_bool
+    throw $"Invalid value for option '{name}': expected boolean, got {tolower(InspectType(value))} {value}"
+  endif
+enddef
+
+def CheckScopeOption(opts: dict<any>): void
+  if has_key(opts, 'scope') && has_key(opts, 'buf')
+    throw "Can't use both scope and buf"
+  endif
+  if has_key(opts, 'buf') && has_key(opts, 'win')
+    throw "Can't use both buf and win"
+  endif
+  if has_key(opts, 'scope') && index(scopes, opts.scope) == -1
+    throw "Invalid 'scope': expected 'local' or 'global'"
+  endif
+  if has_key(opts, 'buf') && type(opts.buf) != v:t_number
+    throw $"Invalid 'buf': expected Number, got {InspectType(opts.buf)}"
+  endif
+  if has_key(opts, 'win') && type(opts.win) != v:t_number
+    throw $"Invalid 'win': expected Number, got {InspectType(opts.win)}"
+  endif
+enddef
+
+def CreateModePrefix(mode: string, opts: dict<any>): string
+  if mode ==# '!'
+    return 'map!'
+  endif
+  return get(opts, 'noremap', 0) ?  $'{mode}noremap' : $'{mode}map'
+enddef
+
+def CreateArguments(opts: dict<any>): string
+  var arguments = ''
+  for key in keys(opts)
+    if opts[key] == true && index(keymap_arguments, key) != -1
+      arguments ..= $'<{key}>'
+    endif
+  endfor
+  return arguments
+enddef
+
+def GeneratePropId(bufnr: number): number
+  const max: number = get(buffer_id, bufnr, prop_offset)
+  const id: number = max + 1
+  buffer_id[bufnr] = id
+  return id
+enddef
+
+export def GetNamespaceTypes(ns: number): list<string>
+  return get(id_types, ns, [])
+enddef
+
+export def CreateType(ns: number, hl: string, opts: dict<any>): string
+  const type: string = $'{hl}_{ns}'
+  final types: list<string> = get(id_types, ns, [])
+  if index(types, type) == -1
+    add(types, type)
+    id_types[ns] = types
+    if empty(prop_type_get(type))
+      final type_option: dict<any> = {'highlight': hl}
+      const hl_mode: string = get(opts, 'hl_mode', 'combine')
+      if hl_mode !=# 'combine'
+        type_option['override'] = 1
+        type_option['combine'] = 0
+      endif
+      # vim not throw for unknown properties
+      prop_type_add(type, extend(type_option, opts))
+    endif
+  endif
+  return type
+enddef
+
+def OnBufferChange(bufnr: number, _start: number, _end: number, _added: number, bufchanges: list<any>): void
+  final result: list<any> = []
+  for item in bufchanges
+    const start = item['lnum'] - 1
+    # Delete lines
+    if item['added'] < 0
+      # include start line, which needed for undo
+      const lines = getbufline(bufnr, item['lnum'])
+      add(result, [start, 0 - item['added'] + 1, lines])
+    # Add lines
+    elseif item['added'] > 0
+      const lines = getbufline(bufnr, item['lnum'], item['lnum'] + item['added'])
+      add(result, [start, 1, lines])
+    # Change lines
+    else
+      const lines = getbufline(bufnr, item['lnum'], item['end'] - 1)
+      add(result, [start, item['end'] - item['lnum'], lines])
+    endif
+  endfor
+  nvim#rpc#notify('vim_buf_change_event', [bufnr, getbufvar(bufnr, 'changedtick'), result])
+enddef
+
+export def DetachListener(bufnr: number): bool
+  const id: number = get(listener_map, bufnr, 0)
+  if id != 0
+    remove(listener_map, bufnr)
+    const succeed = listener_remove(id)
+    return succeed ? true : false
+  endif
+  return false
+enddef
+
+# Call the legacy execute, use silent to avoid vim block
+function Execute(command, ...) abort
+  legacy return execute(a:command, get(a:, 1, 'silent'))
 endfunction
 
-function! s:funcs.tabpage_list_wins(tabnr)
-  let info = getwininfo()
-  return map(filter(info, 'v:val["tabnr"] == a:tabnr'), 'v:val["winid"]')
+# Call the legacy win_execute, use silent to avoid vim block
+function Win_execute(winid, cmds, ...) abort
+  legacy return win_execute(a:winid, a:cmds, get(a:, 1, 'silent'))
+endfunction
+# }}"
+
+# nvim client methods {{
+export def Set_current_dir(dir: string): any
+  execute $'legacy cd {fnameescape(dir)}'
+  return null
+enddef
+
+export def Set_var(name: string, value: any): any
+  g:[name] = value
+  return null
+enddef
+
+export def Del_var(name: string): any
+  CheckKey(g:, name)
+  remove(g:, name)
+  return null
+enddef
+
+export def Set_option(name: string, value: any, local: bool = false): any
+  CheckOptionValue(name, value)
+  if index(boolean_options, name) != -1
+    if value
+      execute $'legacy set{local ? 'l' : ''} {name}'
+    else
+      execute $'legacy set{local ? 'l' : ''} no{name}'
+    endif
+  else
+    execute $"legacy set{local ? 'l' : ''} {name}={EscapeOptionValue(value)}"
+  endif
+  return null
+enddef
+
+export def Get_option(name: string): any
+  return eval($'&{name}')
+enddef
+
+export def Set_current_buf(bufnr: number): any
+  CheckBufnr(bufnr)
+  # autocmd could fail when not use legacy.
+  execute $'legacy buffer {bufnr}'
+  return null
+enddef
+
+export def Set_current_win(winid: number): any
+  CheckWinid(winid)
+  win_gotoid(winid)
+  return null
+enddef
+
+export def Set_current_tabpage(tid: number): any
+  const nr = TabIdNr(tid)
+  execute $'legacy normal! {nr}gt'
+  return null
+enddef
+
+export def List_wins(): list<number>
+  return getwininfo()->map((_, info) => info.winid)
+enddef
+
+export def Call_atomic(calls: list<any>): list<any>
+  final results: list<any> = []
+  for i in range(len(calls))
+    const key: string = calls[i][0]
+    const name: string = $"{toupper(key[5])}{strpart(key, 6)}"
+    try
+      const result = call(name, get(calls[i], 1, []))
+      add(results, result)
+    catch /.*/
+      return [results, [i, $'VimException({InspectType(v:exception)})', $'{v:exception} on function nvim#api#{name}']]
+    endtry
+  endfor
+  return [results, null]
+enddef
+
+export def Set_client_info(..._): any
+  # not supported
+  return null
+enddef
+
+export def Subscribe(..._): any
+  # not supported
+  return null
+enddef
+
+export def Unsubscribe(..._): any
+  # not supported
+  return null
+enddef
+
+# Not return on notification for possible void function call.
+export def Call_function(method: string, args: list<any>, notify: bool = false): any
+  if method ==# 'execute'
+    return call(Execute, args)
+  elseif method ==# 'eval'
+    return Eval(args[0])
+  elseif method ==# 'win_execute'
+    return call(Win_execute, args)
+  elseif !notify
+    return call(method, args)
+  endif
+  call call(method, args)
+  return null
+enddef
+
+export def Call_dict_function(dict: any, method: string, args: list<any>): any
+  if type(dict) == v:t_string
+    return call(method, args, Eval(dict))
+  endif
+  return call(method, args, dict)
+enddef
+
+# Use the legacy eval, could be called by Call
+export function Eval(expr) abort
+  legacy return eval(a:expr)
 endfunction
 
-function! s:funcs.tabpage_get_var(tabnr, name)
-  return gettabvar(a:tabnr, a:name, v:null)
-endfunction
+export def Command(command: string): any
+  # command that could cause cursor vanish
+  if command =~# '^\(echo\|redraw\|sign\)'
+    DeferExecute(command)
+  else
+    # Use legacy command not work for command like autocmd
+    Execute(command)
+    # The error is set by python script, since vim not give error on python command failure
+    if strpart(command, 0, 2) ==# 'py'
+      const errmsg: string = get(g:, 'errmsg', '')
+      if !empty(errmsg)
+        remove(g:, 'errmsg')
+        throw $'Python error {errmsg}'
+      endif
+    endif
+  endif
+  return null
+enddef
 
-function! s:funcs.tabpage_set_var(tabnr, name, value)
-  call settabvar(a:tabnr, a:name, a:value)
-endfunction
+export def Get_api_info(): any
+  const functions: list<string> = map(copy(API_FUNCTIONS), (_, val) => $'nvim_{val}')
+  const channel: any = nvim#rpc#get_channel()
+  if empty(channel)
+    throw 'Unable to get channel'
+  endif
+  return [ch_info(channel)['id'], {'functions': functions}]
+enddef
 
-function! s:funcs.tabpage_del_var(tabnr, name)
-  call settabvar(a:tabnr, a:name, v:null)
-endfunction
+export def List_bufs(): list<number>
+  return getbufinfo()->map((_, info) => info.bufnr)
+enddef
 
-function! s:funcs.tabpage_is_valid(tabnr)
-  let max = tabpagenr('$')
-  return a:tabnr <= max
-endfunction
+export def Feedkeys(keys: string, mode: string, escape_csi: any = false): any
+  feedkeys(keys, mode)
+  return null
+enddef
 
-function! s:funcs.tabpage_get_win(tabnr)
-  let wnr = tabpagewinnr(a:tabnr)
-  return win_getid(wnr, a:tabnr)
-endfunction
-" }}
+export def List_runtime_paths(): list<string>
+  return globpath(&runtimepath, '', 0, 1)
+enddef
 
-function! nvim#api#func_names() abort
-  return keys(s:funcs)
-endfunction
+export def Command_output(cmd: string): string
+  return trim(Execute(cmd, 'silent'), "\r\n")
+enddef
 
-function! nvim#api#call(method, args) abort
-  let err = v:null
-  let res = v:null
+export def Exec(code: string, output: bool): string
+  if output
+    return Command_output(code)
+  endif
+  Execute(code)
+  return ''
+enddef
+
+# Queues raw user-input, <" is special. To input a literal "<", send <LT>.
+export def Input(keys: string): any
+  const escaped: string = substitute(keys, '<', '\\<', 'g')
+  feedkeys(eval($'"{escaped}"'), 'n')
+  return null
+enddef
+
+export def Create_buf(listed: bool, scratch: bool): number
+  const bufnr: number = bufadd('')
+  setbufvar(bufnr, '&buflisted', listed ? 1 : 0)
+  if scratch
+    setbufvar(bufnr, '&modeline', 0)
+    setbufvar(bufnr, '&buftype', 'nofile')
+    setbufvar(bufnr, '&swapfile', 0)
+  endif
+  bufload(bufnr)
+  return bufnr
+enddef
+
+export def Get_current_line(): string
+  return getline('.')
+enddef
+
+export def Set_current_line(line: string): any
+  setline('.', line)
+  OnTextChange(bufnr('%'))
+  return null
+enddef
+
+export def Del_current_line(): any
+  deletebufline('%', line('.'))
+  OnTextChange(bufnr('%'))
+  return null
+enddef
+
+export def Get_var(var: string): any
+  CheckKey(g:, var)
+  return g:[var]
+enddef
+
+export def Get_vvar(var: string): any
+  return eval($'v:{var}')
+enddef
+
+export def Get_current_buf(): number
+  return bufnr('%')
+enddef
+
+export def Get_current_win(): number
+  return win_getid()
+enddef
+
+export def Get_current_tabpage(): number
+  return TabNrId(tabpagenr())
+enddef
+
+export def List_tabpages(): list<number>
+  final ids = []
+  for nr in range(1, tabpagenr('$'))
+    add(ids, TabNrId(nr))
+  endfor
+  return ids
+enddef
+
+export def Get_mode(): dict<any>
+  const m: string = mode()
+  return {'blocking': m =~# '^r' ? true : false, 'mode': m}
+enddef
+
+export def Strwidth(str: string): number
+  return strwidth(str)
+enddef
+
+export def Out_write(str: string): any
+  echon str
+  DeferExecute('redraw')
+  return null
+enddef
+
+export def Err_write(str: string): any
+  # Err_write texts are cached by node-client
+  return null
+enddef
+
+export def Err_writeln(str: string): any
+  echohl ErrorMsg
+  echom str
+  echohl None
+  DeferExecute('redraw')
+  return null
+enddef
+
+export def Create_namespace(name: string): number
+  if empty(name)
+    const id = namespace_id
+    namespace_id += 1
+    return id
+  endif
+  var id = get(namespace_cache, name, 0)
+  if id == 0
+    id = namespace_id
+    namespace_id += 1
+    namespace_cache[name] = id
+  endif
+  return id
+enddef
+
+export def Get_namespaces(): dict<any>
+  return deepcopy(namespace_cache)
+enddef
+
+export def Set_keymap(mode: string, lhs: string, rhs: string, opts: dict<any>): any
+  const modekey: string = CreateModePrefix(mode, opts)
+  const arguments: string = CreateArguments(opts)
+  const escaped: string = empty(rhs) ? '<Nop>' : EscapeSpace(rhs)
+  Execute($'{modekey} {arguments} {EscapeSpace(lhs)} {escaped}')
+  return null
+enddef
+
+export def Del_keymap(mode: string, lhs: string): any
+  const escaped = substitute(lhs, ' ', '<space>', 'g')
+  execute $'legacy silent {mode}unmap {escaped}'
+  return null
+enddef
+
+export def Set_option_value(name: string, value: any, opts: dict<any>): any
+  CheckScopeOption(opts)
+  const winid: number = get(opts, 'win', -1)
+  const bufnr: number = get(opts, 'buf', -1)
+  const scope: string = get(opts, 'scope', 'global')
+  if bufnr != -1
+    Buf_set_option(bufnr, name, value)
+  elseif winid != -1
+    Win_set_option(winid, name, value)
+  else
+    if scope ==# 'global'
+      Set_option(name, value)
+    else
+      Set_option(name, value, true)
+    endif
+  endif
+  return null
+enddef
+
+export def Get_option_value(name: string, opts: dict<any> = {}): any
+  CheckScopeOption(opts)
+  const winid: number = get(opts, 'win', -1)
+  const bufnr: number = get(opts, 'buf', -1)
+  const scope: string = get(opts, 'scope', 'global')
+  var result: any = null
+  if bufnr != -1
+    result = Buf_get_option(bufnr, name)
+  elseif winid != -1
+    result = Win_get_option(winid, name)
+  else
+    if scope ==# 'global'
+      result = eval($'&{name}')
+    else
+      result = gettabwinvar(tabpagenr(), 0, '&' .. name, null)
+      if result == null
+        result = Buf_get_option(bufnr('%'), name)
+      endif
+    endif
+  endif
+  return result
+enddef
+# }}
+
+# buffer methods {{
+export def Buf_set_option(id: number, name: string, value: any): any
+  const bufnr = GetValidBufnr(id)
+  CheckOptionValue(name, value)
+  if index(buffer_options, name) == -1
+    throw $"Invalid buffer option name: {name}"
+  endif
+  setbufvar(bufnr, $'&{name}', value)
+  return null
+enddef
+
+export def Buf_get_option(id: number, name: string): any
+  const bufnr = GetValidBufnr(id)
+  if index(buffer_options, name) == -1
+    throw $"Invalid buffer option name: {name}"
+  endif
+  return getbufvar(bufnr, $'&{name}')
+enddef
+
+export def Buf_get_changedtick(id: number): number
+  const bufnr = GetValidBufnr(id)
+  return getbufvar(bufnr, 'changedtick')
+enddef
+
+export def Buf_is_valid(bufnr: number): bool
+  return bufexists(bufnr)
+enddef
+
+export def Buf_is_loaded(bufnr: number): bool
+  return bufloaded(bufnr)
+enddef
+
+export def Buf_get_mark(id: number, name: string): list<number>
+  const bufnr = GetValidBufnr(id)
+  const marks: list<any> = getmarklist(bufnr)
+  for item in marks
+    if item['mark'] ==# $"'{name}"
+      const pos: list<number> = item['pos']
+      return [pos[1], pos[2] - 1]
+    endif
+  endfor
+  return [0, 0]
+enddef
+
+export def Buf_add_highlight(id: number, srcId: number, hlGroup: string, line: number, colStart: number, colEnd: number, propTypeOpts: dict<any> = {}): any
+  const bufnr = GetValidBufnr(id)
+  var sourceId: number
+  if srcId == 0
+    max_src_id += 1
+    sourceId = max_src_id
+  else
+    sourceId = srcId
+  endif
+  Buf_add_highlight1(bufnr, sourceId, hlGroup, line, colStart, colEnd, propTypeOpts)
+  return sourceId
+enddef
+
+# To be called directly for better performance
+# 0 based line, colStart, colEnd, see `:h prop_type_add` for propTypeOpts
+export def Buf_add_highlight1(bufnr: number, srcId: number, hlGroup: string, line: number, colStart: number, colEnd: number, propTypeOpts: dict<any> = {}): void
+  const columnEnd: number = colEnd == -1 ? strlen(get(getbufline(bufnr, line + 1), 0, '')) + 1 : colEnd + 1
+  if columnEnd <= colStart
+    return
+  endif
+  const propType: string = CreateType(srcId, hlGroup, propTypeOpts)
+  const propId: number = GeneratePropId(bufnr)
   try
-    let res = call(s:funcs[a:method], a:args)
-  catch /.*/
-    let err = v:exception
+    prop_add(line + 1, colStart + 1, {'bufnr': bufnr, 'type': propType, 'id': propId, 'end_col': columnEnd})
+  catch /^Vim\%((\a\+)\)\=:\(E967\|E964\)/
+    # ignore 967
   endtry
-  return [err, res]
+enddef
+
+export def Buf_clear_namespace(id: number, srcId: number, startLine: number, endLine: number): any
+  const bufnr = GetValidBufnr(id)
+  const start = startLine + 1
+  const end = endLine == -1 ? BufLineCount(bufnr) : endLine
+  if srcId == -1
+    if has_key(buffer_id, bufnr)
+      remove(buffer_id, bufnr)
+    endif
+    prop_clear(start, end, {'bufnr': bufnr})
+  else
+    const types = get(id_types, srcId, [])
+    if !empty(types)
+      try
+        prop_remove({'bufnr': bufnr, 'all': true, 'types': types}, start, end)
+      catch /^Vim\%((\a\+)\)\=:E968/
+        # ignore 968
+      endtry
+    endif
+  endif
+  return null
+enddef
+
+export def Buf_line_count(bufnr: number): number
+  if bufnr == 0
+    return line('$')
+  endif
+  return BufLineCount(bufnr)
+enddef
+
+export def Buf_attach(id: number = 0, ..._): bool
+  const bufnr = GetValidBufnr(id)
+  # listener not removed on e!
+  DetachListener(bufnr)
+  const result = listener_add(OnBufferChange, bufnr)
+  if result != 0
+    listener_map[bufnr] = result
+    return true
+  endif
+  return false
+enddef
+
+export def Buf_detach(id: number): bool
+  const bufnr = GetValidBufnr(id)
+  return DetachListener(bufnr)
+enddef
+
+export def Buf_get_lines(id: number, start: number, end: number, strict: bool = false): list<string>
+  const bufnr = GetValidBufnr(id)
+  const len = BufLineCount(bufnr)
+  const s = start < 0 ? len + start + 2 : start + 1
+  const e = end < 0 ? len + end + 1 : end
+  if strict && e > len
+    throw $'Index out of bounds {end}'
+  endif
+  return getbufline(bufnr, s, e)
+enddef
+
+export def Buf_set_lines(id: number, start: number, end: number, strict: bool = false, replacement: list<string> = []): any
+  const bufnr = GetValidBufnr(id)
+  const len = BufLineCount(bufnr)
+  var startLnum = start < 0 ? len + start + 2 : start + 1
+  var endLnum = end < 0 ? len + end + 1 : end
+  if endLnum > len
+    if strict
+      throw $'Index out of bounds {end}'
+    else
+      endLnum = len
+    endif
+  endif
+  const delCount = endLnum - (startLnum - 1)
+  const view = bufnr == bufnr('%') ? winsaveview() : null
+  if delCount == len(replacement)
+    setbufline(bufnr, startLnum, replacement)
+  else
+    if len(replacement) > 0
+      appendbufline(bufnr, startLnum - 1, replacement)
+    endif
+    if delCount > 0
+      startLnum += len(replacement)
+      silent deletebufline(bufnr, startLnum, startLnum + delCount - 1)
+    endif
+  endif
+  if view != null
+    winrestview(view)
+  endif
+  OnTextChange(bufnr)
+  return null
+enddef
+
+export def Buf_set_name(id: number, name: string): any
+  const bufnr = GetValidBufnr(id)
+  BufExecute(bufnr, ['legacy silent noa 0file', $'legacy file {fnameescape(name)}'])
+  return null
+enddef
+
+export def Buf_get_name(id: number): string
+  return GetValidBufnr(id)->bufname()
+enddef
+
+export def Buf_get_var(id: number, name: string): any
+  const bufnr = GetValidBufnr(id)
+  const dict: dict<any> = getbufvar(bufnr, '')
+  CheckKey(dict, name)
+  return dict[name]
+enddef
+
+export def Buf_set_var(id: number, name: string, val: any): any
+  const bufnr = GetValidBufnr(id)
+  setbufvar(bufnr, name, val)
+  return null
+enddef
+
+export def Buf_del_var(id: number, name: string): any
+  const bufnr = GetValidBufnr(id)
+  final bufvars = getbufvar(bufnr, '')
+  CheckKey(bufvars, name)
+  remove(bufvars, name)
+  return null
+enddef
+
+export def Buf_set_keymap(id: number, mode: string, lhs: string, rhs: string, opts: dict<any>): any
+  const bufnr = GetValidBufnr(id)
+  const prefix = CreateModePrefix(mode, opts)
+  const arguments = CreateArguments(opts)
+  const escaped = empty(rhs) ? '<Nop>' : EscapeSpace(rhs)
+  BufExecute(bufnr, [$'legacy {prefix} {arguments}<buffer> {EscapeSpace(lhs)} {escaped}'])
+  return null
+enddef
+
+export def Buf_del_keymap(id: number, mode: string, lhs: string): any
+  const bufnr = GetValidBufnr(id)
+  const escaped = substitute(lhs, ' ', '<space>', 'g')
+  BufExecute(bufnr, [$'legacy silent {mode}unmap <buffer> {escaped}'])
+  return null
+enddef
+# }}
+
+# window methods {{
+export def Win_get_buf(id: number): number
+  return GetValidWinid(id)->winbufnr()
+enddef
+
+export def Win_set_buf(id: number, bufnr: number): any
+  const winid = GetValidWinid(id)
+  CheckBufnr(bufnr)
+  win_execute(winid, $'legacy buffer {bufnr}')
+  return null
+enddef
+
+export def Win_get_position(id: number): list<number>
+  const winid = GetValidWinid(id)
+  const [row, col] = win_screenpos(winid)
+  if row == 0 && col == 0
+    throw $'Invalid window {winid}'
+  endif
+  return [row - 1, col - 1]
+enddef
+
+export def Win_set_height(id: number, height: number): any
+  const winid = GetValidWinid(id)
+  if IsPopup(winid)
+    popup_move(winid, {'maxheight': height, 'minheight': height})
+  else
+    win_execute(winid, $'legacy resize {height}')
+  endif
+  return null
+enddef
+
+export def Win_get_height(id: number): number
+  const winid = GetValidWinid(id)
+  if IsPopup(winid)
+    return popup_getpos(winid)['height']
+  endif
+  return winheight(winid)
+enddef
+
+export def Win_set_width(id: number, width: number): any
+  const winid = GetValidWinid(id)
+  if IsPopup(winid)
+    popup_move(winid, {'maxwidth': width, 'minwidth': width})
+  else
+    win_execute(winid, $'legacy vertical resize {width}')
+  endif
+  return null
+enddef
+
+export def Win_get_width(id: number): number
+  const winid = GetValidWinid(id)
+  if IsPopup(winid)
+    return popup_getpos(winid)['width']
+  endif
+  return winwidth(winid)
+enddef
+
+export def Win_set_cursor(id: number, pos: list<number>): any
+  const winid = GetValidWinid(id)
+  win_execute(winid, $'cursor({pos[0]}, {pos[1] + 1})')
+  return null
+enddef
+
+export def Win_get_cursor(id: number): list<number>
+  const winid = GetValidWinid(id)
+  const result = getcurpos(winid)
+  if result[1] == 0
+    return [1, 0]
+  endif
+  return [result[1], result[2] - 1]
+enddef
+
+export def Win_set_option(id: number, name: string, value: any): any
+  const winid = GetValidWinid(id)
+  CheckOptionValue(name, value)
+  const tabnr = WinTabnr(winid)
+  if index(window_options, name) == -1
+    throw $"Invalid window option name: {name}"
+  endif
+  settabwinvar(tabnr, winid, $'&{name}', value)
+  return null
+enddef
+
+export def Win_get_option(id: number, name: string, ..._): any
+  const winid = GetValidWinid(id)
+  const tabnr = WinTabnr(winid)
+  if index(window_options, name) == -1
+    throw $"Invalid window option name: {name}"
+  endif
+  return gettabwinvar(tabnr, winid, '&' .. name)
+enddef
+
+export def Win_get_var(id: number, name: string, ..._): any
+  const winid = GetValidWinid(id)
+  const tabnr = WinTabnr(winid)
+  const vars = gettabwinvar(tabnr, winid, '')
+  CheckKey(vars, name)
+  return vars[name]
+enddef
+
+export def Win_set_var(id: number, name: string, value: any): any
+  const winid = GetValidWinid(id)
+  const tabnr = WinTabnr(winid)
+  settabwinvar(tabnr, winid, name, value)
+  return null
+enddef
+
+export def Win_del_var(id: number, name: string): any
+  const winid = GetValidWinid(id)
+  const tabnr = WinTabnr(winid)
+  const vars: dict<any> = gettabwinvar(tabnr, winid, '')
+  CheckKey(vars, name)
+  win_execute(winid, 'remove(w:, "' .. name .. '")')
+  return null
+enddef
+
+export def Win_is_valid(id: number): bool
+  const winid = id == 0 ? win_getid() : id
+  return empty(getwininfo(winid)) == 0
+enddef
+
+export def Win_get_number(id: number): number
+  const winid = GetValidWinid(id)
+  const info = getwininfo(winid)
+  # Note: vim return 0 for popup
+  return info[0]['winnr']
+enddef
+
+# Not work for popup since vim gives 0 for tabnr
+export def Win_get_tabpage(id: number): number
+  return GetValidWinid(id)->WinTabnr()->TabNrId()
+enddef
+
+export def Win_close(id: number, force: bool = false): any
+  const winid = GetValidWinid(id)
+  if IsPopup(winid)
+    popup_close(winid)
+  else
+    win_execute(winid, $'legacy close{force ? '!' : ''}')
+  endif
+  return null
+enddef
+# }}
+
+# tabpage methods {{
+export def Tabpage_get_number(tid: number): number
+  return TabIdNr(tid)
+enddef
+
+export def Tabpage_list_wins(tid: number): list<number>
+  return TabIdNr(tid)->gettabinfo()[0].windows
+enddef
+
+export def Tabpage_get_var(tid: number, name: string): any
+  const nr = TabIdNr(tid)
+  const dict = gettabvar(nr, '')
+  CheckKey(dict, name)
+  return dict[name]
+enddef
+
+export def Tabpage_set_var(tid: number, name: string, value: any): any
+  const nr = TabIdNr(tid)
+  settabvar(nr, name, value)
+  return null
+enddef
+
+export def Tabpage_del_var(tid: number, name: string): any
+  const nr = TabIdNr(tid)
+  final dict = gettabvar(nr, '')
+  CheckKey(dict, name)
+  remove(dict, name)
+  return null
+enddef
+
+export def Tabpage_is_valid(tid: number): bool
+  for nr in range(1, tabpagenr('$'))
+    if gettabvar(nr, '__coc_tid', -1) == tid
+      return true
+    endif
+  endfor
+  return false
+enddef
+
+export def Tabpage_get_win(tid: number): number
+  const nr = TabIdNr(tid)
+  return win_getid(tabpagewinnr(nr), nr)
+enddef
+
+export def Tabpage_ids(): void
+  for nr in range(1, tabpagenr('$'))
+    if gettabvar(nr, '__coc_tid', -1) == -1
+      settabvar(nr, '__coc_tid', tab_id)
+      tab_id += 1
+    endif
+  endfor
+enddef
+# }}
+
+# Used by node-client request, function needed to catch error
+export function Call(method, args) abort
+  let err = v:null
+  let result = v:null
+  try
+    let result = call($'nvim#api#{toupper(a:method[0])}{strpart(a:method, 1)}', a:args)
+    call listener_flush()
+  catch /.*/
+    let err =  v:exception .. ' - on request "' .. a:method .. '" ' .. json_encode(a:args)
+    let result = v:null
+  endtry
+  return [err, result]
 endfunction
 
-function! nvim#api#notify(method, args) abort
-  call call(s:funcs[a:method], a:args)
+# Used by node-client notification, function needed to catch error
+export function Notify(method, args) abort
+  try
+    if a:method ==# 'call_function'
+      call nvim#api#Call_function(a:args[0], a:args[1], v:true)
+    else
+      let fname = $'nvim#api#{toupper(a:method[0])}{strpart(a:method, 1)}'
+      call call(fname, a:args)
+    endif
+    call listener_flush()
+  catch /.*/
+    call nvim#rpc#notify('nvim_error_event', [0, v:exception .. ' - on notification "' .. a:method .. '" ' .. json_encode(a:args)])
+  endtry
+  return v:null
 endfunction
-" vim: set sw=2 ts=2 sts=2 et tw=78 foldmarker={{,}} foldmethod=marker foldlevel=0:
+
+defcompile
+# vim: set sw=2 ts=2 sts=2 et tw=78 foldmarker={{,}} foldmethod=marker foldlevel=0:

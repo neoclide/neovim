@@ -1,7 +1,7 @@
 import { NeovimClient } from '../api'
 import { isCocNvim } from '../utils/constants'
 import Connection from './connection'
-const func = isCocNvim ? 'coc#api#Call' : 'nvim#api#call'
+const func = isCocNvim ? 'coc#api#Call' : 'nvim#api#Call'
 
 export default class Request {
   private method: string

@@ -84,6 +84,10 @@ function! nvim#rpc#request(method, args) abort
   endif
 endfunction
 
+function! nvim#rpc#get_channel() abort
+  return s:channel
+endfunction
+
 function! nvim#rpc#notify(method, args) abort
   if empty(s:channel) | return | endif
   " use 0 as vim request id

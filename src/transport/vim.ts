@@ -4,7 +4,7 @@ import { ILogger } from '../utils/logger'
 import Transport, { Response } from './base'
 import Connection, { VimCommands } from './connection'
 import Request from './request'
-const notifyMethod = isCocNvim ? 'coc#api#Notify' : 'nvim#api#notify'
+const notifyMethod = isCocNvim ? 'coc#api#Notify' : 'nvim#api#Notify'
 
 export class VimTransport extends Transport {
   private pending: Map<number, Request> = new Map()
