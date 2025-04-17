@@ -48,9 +48,10 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          npm ci
           vim --version
           nvim --version
+          npm ci
+          npm run lint
 
       - name: Run jest
         env:
