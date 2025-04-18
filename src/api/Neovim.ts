@@ -517,8 +517,8 @@ export class Neovim extends BaseApi {
     this.notify(`${this.prefix}create_augroup`, [name, option])
   }
 
-  public createAutocmd(event: string, option?: AutocmdOption): Promise<number>
-  public createAutocmd(event: string, option: AutocmdOption, isNotify: true): void
+  public createAutocmd(event: string | string[], option?: AutocmdOption): Promise<number>
+  public createAutocmd(event: string | string[], option: AutocmdOption, isNotify: true): void
   public createAutocmd(event: string | string[], option: AutocmdOption = {}, isNotify: boolean = false): Promise<number> | void {
     if (!isNotify) return this.request(`${this.prefix}create_autocmd`, [event, option])
     this.notify(`${this.prefix}create_autocmd`, [event, option])
