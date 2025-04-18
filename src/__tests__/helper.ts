@@ -28,7 +28,7 @@ export async function setupVim(): Promise<Neovim> {
     server.listen(address)
   })
   let executable = process.env.VIM_COMMAND ?? 'vim'
-  proc = cp.spawn(executable, ['--clean', '--not-a-term', '-u', vimrc], {
+  proc = cp.spawn(executable, ['--clean', '--noplugin', '--not-a-term', '-u', vimrc], {
     stdio: 'pipe',
     shell: true,
     cwd: __dirname,
@@ -57,4 +57,14 @@ export async function shutdown(): Promise<void> {
   if (nvim) await nvim.quit()
   if (server) server.close()
   if (proc) proc.kill('SIGKILL')
+}
+
+export function wait(ms: number): Promise<void> {
+  if (ms <= 0) return Promise.resolve(undefined)
+  return new Promise(resolve => {
+    let timer = setTimeout(() => {
+      resolve(undefined)
+    }, ms)
+    timer.unref()
+  })
 }

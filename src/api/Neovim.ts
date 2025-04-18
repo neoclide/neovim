@@ -22,6 +22,27 @@ export interface Proc {
   pid: number
 }
 
+export interface AutocmdOption {
+  group?: string | number
+  pattern?: string | string[]
+  buffer?: number
+  /**
+   * Not used on vim9.
+   */
+  desc?: string
+  command?: string
+  once?: boolean
+  nested?: boolean
+  /**
+   * vim9 only, see `:h autocmd_add()`
+   */
+  replace?: boolean
+}
+
+export interface AugroupOption {
+  clear?: boolean
+}
+
 export type MouseButton = 'left' | 'right' | 'middle' | 'wheel'
 
 export type ButtonAction = 'press' | 'drag' | 'release' | 'up' | 'down' | 'left' | 'right'
@@ -487,6 +508,24 @@ export class Neovim extends BaseApi {
   /** Unsubscribe to nvim event broadcasts */
   public unsubscribe(event: string): Promise<void> {
     return this.request(`${this.prefix}unsubscribe`, [event])
+  }
+
+  public createAugroup(name: string, option?: AugroupOption): Promise<number>
+  public createAugroup(name: string, option: AugroupOption, isNotify: true): void
+  public createAugroup(name: string, option: AugroupOption = {}, isNotify: boolean = false): Promise<number> | void {
+    if (!isNotify) return this.request(`${this.prefix}create_augroup`, [name, option])
+    this.notify(`${this.prefix}create_augroup`, [name, option])
+  }
+
+  public createAutocmd(event: string, option?: AutocmdOption): Promise<number>
+  public createAutocmd(event: string, option: AutocmdOption, isNotify: true): void
+  public createAutocmd(event: string | string[], option: AutocmdOption = {}, isNotify: boolean = false): Promise<number> | void {
+    if (!isNotify) return this.request(`${this.prefix}create_autocmd`, [event, option])
+    this.notify(`${this.prefix}create_autocmd`, [event, option])
+  }
+
+  public deleteAutocmd(id: number): void {
+    this.notify(`${this.prefix}del_autocmd`, [id])
   }
 
   public setClientInfo(

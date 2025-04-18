@@ -94,6 +94,21 @@ describe('Nvim Promise API', () => {
     expect(newLines).toEqual(['line1', 'line2'])
   })
 
+  it('should create and delete autocmd', async () => {
+    let group = await nvim.createAugroup('MyGroup', { clear: false })
+    expect(typeof group).toBe('number')
+    let res = await nvim.createAutocmd('BufEnter', { group: 'MyGroup', pattern: '*', command: 'let g:f = "bar"' })
+    expect(typeof res).toBe('number')
+    let output = await nvim.call('execute', 'autocmd BufEnter') as string
+    expect(output).toMatch('bar')
+    await nvim.command(`doautocmd <nomodeline> BufEnter`)
+    let val = await nvim.getVar('f')
+    expect(val).toBe('bar')
+    nvim.deleteAutocmd(res)
+    output = await nvim.call('execute', 'autocmd BufEnter') as string
+    expect(output.includes('bar')).toBe(false)
+  })
+
   it('emits "disconnect" after quit', done => {
     const disconnectMock = jest.fn()
     nvim.on('disconnect', disconnectMock)
