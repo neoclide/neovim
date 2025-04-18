@@ -193,7 +193,9 @@ export class NeovimClient extends Neovim {
    */
   public redrawVim(force?: boolean): void {
     if (!this.isVim) return
-    this.transport.vimCommand('redraw', force)
+    // Don't use this, can cause cursor vanish.
+    // this.transport.vimCommand('redraw', force)
+    this.transport.notify('nvim_command', [`redraw${force ? '!' : ''}`])
   }
 
   /** Attaches msgpack to read/write streams * */
