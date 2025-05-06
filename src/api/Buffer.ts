@@ -136,6 +136,17 @@ export interface HighlightItem {
   end_incl?: boolean
 }
 
+export interface HighlightConfig {
+  /**
+   * Clear namespace highlights first.
+   */
+  clear?: boolean
+  priority?: number
+  combine?: boolean
+  start_incl?: boolean
+  end_incl?: boolean
+}
+
 export interface VimHighlightItem {
   hlGroup: string
   /**
@@ -514,8 +525,8 @@ export class Buffer extends BaseApi {
    * @param {string} hlGroup Highlight group.
    * @param {Range[]} ranges List of highlight ranges
    */
-  public highlightRanges(srcId: string | number, hlGroup: string, ranges: Range[]): void {
-    this.client.call('coc#highlight#ranges', [this.id, srcId, hlGroup, ranges], true)
+  public highlightRanges(srcId: string | number, hlGroup: string, ranges: Range[], option?: HighlightConfig): void {
+    this.client.call('coc#highlight#ranges', [this.id, srcId, hlGroup, ranges, option ?? {}], true)
   }
 
   /**
@@ -569,7 +580,7 @@ export class Buffer extends BaseApi {
    * @param {number} end 0 based line number.
    * @returns {Promise<HighlightItem[]>}
    */
-  public async getHighlights(ns: string, start = 0, end = -1): Promise<VimHighlightItem[]> {
+  public async getHighlights(ns: string | number, start = 0, end = -1): Promise<VimHighlightItem[]> {
     let res: VimHighlightItem[] = []
     let arr = await this.client.call('coc#highlight#get_highlights', [this.id, ns, start, end]) as [string, number, number, number, number?][]
     for (let item of arr) {
@@ -601,12 +612,12 @@ export class Buffer extends BaseApi {
     let end = typeof opts.end === 'number' ? opts.end : -1
     let changedtick = typeof opts.changedtick === 'number' ? opts.changedtick : null
     let priority = typeof opts.priority === 'number' ? opts.priority : null
+    let arr = highlights.map(o => [o.hlGroup, o.lnum, o.colStart, o.colEnd, o.combine === false ? 0 : 1, o.start_incl ? 1 : 0, o.end_incl ? 1 : 0])
     if (start == 0 && end == -1) {
-      let arr = highlights.map(o => [o.hlGroup, o.lnum, o.colStart, o.colEnd, o.combine === false ? 0 : 1, o.start_incl ? 1 : 0, o.end_incl ? 1 : 0])
       this.client.call('coc#highlight#buffer_update', [this.id, ns, arr, priority, changedtick], true)
       return
     }
-    this.client.call('coc#highlight#update_highlights', [this.id, ns, highlights, start, end, priority, changedtick], true)
+    this.client.call('coc#highlight#update_highlights', [this.id, ns, arr, start, end, priority, changedtick], true)
   }
 
   /**

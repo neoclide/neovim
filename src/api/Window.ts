@@ -149,13 +149,13 @@ export class Window extends BaseApi {
    * Clear match by highlight group.
    */
   public clearMatchGroup(hlGroup: string): void {
-    this.client.call('coc#highlight#clear_match_group', [this.id, hlGroup], true)
+    this.client.call('coc#window#clear_match_group', [this.id, hlGroup], true)
   }
 
   /**
    * Clear match by match ids.
    */
   public clearMatches(ids: number[]): void {
-    this.client.call('coc#highlight#clear_matches', [this.id, ids], true)
+    this.client.call('coc#window#clear_matches', [this.id, ids], true)
   }
 }
