@@ -22,13 +22,14 @@ export class BaseApi {
       this.client = client
     } else {
       Object.defineProperty(this, 'client', {
+        enumerable: false,
         value: this
       })
     }
   }
 
   protected get transport(): Transport {
-    return this.client._transport
+    return this.client.transport
   }
 
   public equals(other: BaseApi): boolean {

@@ -136,17 +136,23 @@ export class NeovimClient extends Neovim {
   private responses: Map<number, AsyncResponse> = new Map()
   private _channelId: number
   private attachedBuffers: Map<number, Map<string, Function[]>> = new Map()
-  public _transport: Transport
+  private _transport: Transport
 
   constructor(private logger: ILogger, public readonly isVim: boolean) {
     // Neovim has no `data` or `metadata`
     super({})
-    this._transport = isVim ? new VimTransport(logger) : new NvimTransport(logger)
+    const transport = isVim ? new VimTransport(logger) : new NvimTransport(logger)
+    Object.defineProperty(this, '_transport', {
+      enumerable: false,
+      get: () => {
+        return transport
+      }
+    })
     this.handleRequest = this.handleRequest.bind(this)
     this.handleNotification = this.handleNotification.bind(this)
   }
 
-  protected get transport(): Transport {
+  public get transport(): Transport {
     return this._transport
   }
 
