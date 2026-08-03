@@ -23,18 +23,14 @@ export default abstract class Transport extends EventEmitter {
     logger.debug(key, ...meta)
   }
 
-  protected info(key: string, ...meta: any[]): void {
-    logger.info(key, ...meta)
-  }
-
   protected debugMessage(msg: any[]): void {
     if (!debug) return
     const msgType = msg[0]
-    if (msgType == 0) {
+    if (msgType === 0) {
       logger.debug('receive request:', msg.slice(1))
-    } else if (msgType == 1) {
+    } else if (msgType === 1) {
       // logger.debug('receive response:', msg.slice(1))
-    } else if (msgType == 2) {
+    } else if (msgType === 2) {
       logger.debug('receive notification:', msg.slice(1))
     } else {
       logger.debug('unknown message:', msg)
@@ -58,9 +54,9 @@ export default abstract class Transport extends EventEmitter {
   public resumeNotification(isNotify: true): null
   public resumeNotification(isNotify = false): Promise<AtomicResult> | null {
     let { pauseLevel } = this
-    if (pauseLevel == 0) return isNotify ? null : Promise.resolve([[], null])
+    if (pauseLevel === 0) return isNotify ? null : Promise.resolve([[], null])
     let obj: any = {}
-    Error.captureStackTrace(obj)
+    if (!global.__TEST__) Error.captureStackTrace(obj)
     this.pauseLevel = pauseLevel - 1
     let list = this.paused.get(pauseLevel)
     this.paused.delete(pauseLevel)
@@ -70,14 +66,14 @@ export default abstract class Transport extends EventEmitter {
           return this.request('nvim_call_atomic', [list], (err, res) => {
             if (err) {
               let e = new Error(`call_atomic error: ${err[1]}`)
-              e.stack = obj.stack.replace(/^Error/, `Error: ${e.message}`)
+              e.stack = obj.stack ? obj.stack.replace(/^Error/, `Error: ${e.message}`) : e.stack
               return reject(e)
             }
-            if (Array.isArray(res) && res[1] != null) {
+            if (Array.isArray(res) && res[1] !== null && res[1] !== undefined) {
               let [index, errType, message] = res[1]
               let [fname, args] = list[index]
               let e = new Error(`call_atomic request error on "${fname}": ${message}`)
-              e.stack = obj.stack.replace(/^Error/, `Error: ${e.message}`)
+              e.stack = obj.stack ? obj.stack.replace(/^Error/, `Error: ${e.message}`) : e.stack
               this.logger.error(`call_atomic request error ${errType} on "${fname}"`, args, message, e)
               return reject(e)
             }
@@ -101,7 +97,7 @@ export default abstract class Transport extends EventEmitter {
 
   public abstract vimRequest(command: 'call' | 'eval', args: any[]): Promise<any>
 
-  public abstract request(method: string, args: any[], cb: Function): any
+  public abstract request(method: string, args: any[], cb: (...args: any[]) => any): any
 
   public abstract notify(method: string, args: any[]): void
 

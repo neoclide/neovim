@@ -1,5 +1,4 @@
 
-
 /** Used for built-in method references. */
 const objectProto = Object.prototype
 
@@ -12,7 +11,6 @@ const hasOwnProperty = objectProto.hasOwnProperty
  * Once a property is set, additional values of the same property are ignored.
  *
  * **Note:** This method mutates `object`.
- *
  * @since 0.1.0
  * @category Object
  * @param {Object} object The destination object.
@@ -26,7 +24,7 @@ const hasOwnProperty = objectProto.hasOwnProperty
  */
 export function defaults(obj: any, ...sources: any[]): any {
   obj = Object(obj)
-  sources.forEach((source) => {
+  sources.forEach(source => {
     if (source != null) {
       source = Object(source)
       for (const key in source) {

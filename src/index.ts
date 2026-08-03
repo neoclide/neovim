@@ -1,7 +1,6 @@
-export { BufferClearHighlight, BufferHighlight, BufferSetLines, ExtmarkDetails, ExtmarkOptions, HighlightConfig, HighlightOption, SignItem, SignPlaceOption, SignPlacedOption, SignUnplaceOption, VimHighlightItem, VirtualTextOption } from './api/Buffer'
+export { type BufferClearHighlight, type BufferHighlight, type BufferSetLines, type ExtmarkDetails, type ExtmarkOptions, type HighlightConfig, type HighlightOption, type SignItem, type SignPlaceOption, type SignPlacedOption, type SignUnplaceOption, type VimHighlightItem, type VirtualTextOption } from './api/Buffer'
 export { Buffer, Neovim, Tabpage, Window } from './api/index'
-export { AugroupOption, AutocmdOption, ButtonAction, MouseButton, UiAttachOptions } from './api/Neovim'
-export { FloatOptions, KeymapOption } from './api/types'
-export { Attach, attach } from './attach/attach'
-export { VimValue } from './types'
-
+export { type AugroupOption, type AutocmdOption, type ButtonAction, type MouseButton, type UiAttachOptions } from './api/Neovim'
+export { type FloatOptions, type KeymapOption } from './api/types'
+export { type Attach, attach } from './attach/attach'
+export { type VimValue } from './types'

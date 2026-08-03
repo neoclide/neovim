@@ -28,7 +28,7 @@ function getLogFile(): string {
   return path.join(os.tmpdir(), `node-client-${process.pid}.log`)
 }
 
-const debugging = process.env.COC_NODE_CLIENT_DEBUG == '1' && process.env.COC_TESTER == '1'
+const debugging = process.env.COC_NODE_CLIENT_DEBUG == '1' //&& process.env.COC_TESTER == '1'
 const LOG_FILE_PATH = getLogFile()
 export const level = debugging ? 'debug' : process.env.NODE_CLIENT_LOG_LEVEL || 'info'
 
@@ -66,12 +66,11 @@ function toString(arg: any): string {
 const toTwoDigits = (v: number) => v < 10 ? `0${v}` : v.toString()
 const toThreeDigits = (v: number) => v < 10 ? `00${v}` : v < 100 ? `0${v}` : v.toString()
 
-
 function toTimeString(currentTime: Date): string {
   return `${toTwoDigits(currentTime.getHours())}:${toTwoDigits(currentTime.getMinutes())}:${toTwoDigits(currentTime.getSeconds())}.${toThreeDigits(currentTime.getMilliseconds())}`
 }
 
-let writableStream: Writable = undefined
+let writableStream: Writable
 
 class Logger implements ILogger {
   constructor(private name: string) {

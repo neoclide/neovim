@@ -7,6 +7,7 @@ import { NvimTransport } from '../transport/nvim'
 import { VimTransport } from '../transport/vim'
 import { AtomicResult, VimValue } from '../types'
 import { isCocNvim, isTester } from '../utils/constants'
+import { disconnectedText } from '../utils/error'
 import { ILogger } from '../utils/logger'
 import { Buffer } from './Buffer'
 import { Neovim } from './Neovim'
@@ -116,8 +117,8 @@ export class AsyncResponse {
 }
 
 function applyMixins(derivedCtor: any, constructors: any[]) {
-  constructors.forEach((baseCtor) => {
-    Object.getOwnPropertyNames(baseCtor.prototype).forEach((name) => {
+  constructors.forEach(baseCtor => {
+    Object.getOwnPropertyNames(baseCtor.prototype).forEach(name => {
       Object.defineProperty(
         derivedCtor.prototype,
         name,
@@ -128,6 +129,7 @@ function applyMixins(derivedCtor: any, constructors: any[]) {
   })
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export interface NeovimClient extends Neovim, EventEmitter {}
 
 export class NeovimClient extends Neovim {
@@ -135,7 +137,7 @@ export class NeovimClient extends Neovim {
   private requestId = 1
   private responses: Map<number, AsyncResponse> = new Map()
   private _channelId: number
-  private attachedBuffers: Map<number, Map<string, Function[]>> = new Map()
+  private attachedBuffers: Map<number, Map<string, ((...args: any[]) => void)[]>> = new Map()
   private _transport: Transport
 
   constructor(private logger: ILogger, public readonly isVim: boolean) {
@@ -217,6 +219,7 @@ export class NeovimClient extends Neovim {
     this.transport.on('notification', this.handleNotification)
     this.transport.on('detach', () => {
       this.emit('disconnect')
+      this.rejectPendingResponses()
       this.transport.removeAllListeners('request')
       this.transport.removeAllListeners('notification')
       this.transport.removeAllListeners('detach')
@@ -235,8 +238,23 @@ export class NeovimClient extends Neovim {
   /* called when attach process disconnected*/
   public detach(): void {
     this.attachedBuffers.clear()
+    this.rejectPendingResponses()
     this.transport.detach()
     this.removeAllListeners()
+  }
+
+  /**
+   * Reject pending async responses. They will never be answered once the
+   * transport is gone, and leaving them pending would keep callers like
+   * `funcs.callAsync` blocked on the shared mutex forever.
+   */
+  private rejectPendingResponses(): void {
+    if (this.responses.size === 0) return
+    const err = new Error(disconnectedText)
+    for (const response of this.responses.values()) {
+      response.finish(err.message)
+    }
+    this.responses.clear()
   }
 
   public get channelId(): Promise<number> {
@@ -253,11 +271,11 @@ export class NeovimClient extends Neovim {
     this.emit('request', method, args, resp)
   }
 
-  public sendAsyncRequest(method: string, args: any[]): Promise<any> {
+  public sendAsyncRequest(method: string, args: VimValue[]): Promise<VimValue> {
     let id = this.requestId
     this.requestId = id + 1
     this.notify('nvim_call_function', ['coc#rpc#async_request', [id, method, args || []]])
-    return new Promise<any>((resolve, reject) => {
+    return new Promise<VimValue>((resolve, reject) => {
       let response = new AsyncResponse(id, (err?: Error, res?: any): void => {
         if (err) return reject(err)
         resolve(res)
@@ -268,7 +286,7 @@ export class NeovimClient extends Neovim {
 
   private handleNotification(method: string, args: VimValue[]): void {
     if (method.endsWith('_event')) {
-      if (method == 'vim_buf_change_event') {
+      if (method === 'vim_buf_change_event') {
         const id = args[0] as number
         if (!this.attachedBuffers.has(id)) return
         const bufferMap = this.attachedBuffers.get(id)
@@ -291,7 +309,7 @@ export class NeovimClient extends Neovim {
         return
       }
       // async_request_event from vim
-      if (method == 'nvim_async_request_event') {
+      if (method === 'nvim_async_request_event') {
         const [id, method, arr] = args
         this.handleRequest(method as string, arr as any[], {
           send: (resp: any, isError?: boolean): void => {
@@ -301,7 +319,7 @@ export class NeovimClient extends Neovim {
         return
       }
       // nvim_async_response_event
-      if (method == 'nvim_async_response_event') {
+      if (method === 'nvim_async_response_event') {
         const [id, err, res] = args
         const response = this.responses.get(id as number)
         if (!response) {
@@ -348,8 +366,8 @@ export class NeovimClient extends Neovim {
     return true
   }
 
-  public attachBufferEvent(bufnr: number, eventName: string, cb: Function): void {
-    const bufferMap = this.attachedBuffers.get(bufnr) || new Map<string, Function[]>()
+  public attachBufferEvent(bufnr: number, eventName: string, cb: (...args: any[]) => void): void {
+    const bufferMap = this.attachedBuffers.get(bufnr) || new Map<string, ((...args: any[]) => void)[]>()
     const cbs = bufferMap.get(eventName) || []
     if (cbs.includes(cb)) return
     cbs.push(cb)
@@ -361,7 +379,7 @@ export class NeovimClient extends Neovim {
   /**
    * Returns `true` if buffer should be detached
    */
-  public detachBufferEvent(bufnr: number, eventName: string, cb: Function): void {
+  public detachBufferEvent(bufnr: number, eventName: string, cb: (...args: any[]) => void): void {
     const bufferMap = this.attachedBuffers.get(bufnr)
     if (!bufferMap || !bufferMap.has(eventName)) return
     const handlers = bufferMap.get(eventName).filter(handler => handler !== cb)
@@ -370,8 +388,8 @@ export class NeovimClient extends Neovim {
 
   public pauseNotification(): void {
     let o: any = {}
-    Error.captureStackTrace(o)
-    if (this.transport.pauseLevel != 0) {
+    if (!global.__TEST__) Error.captureStackTrace(o)
+    if (this.transport.pauseLevel !== 0) {
       this.logError(`Nested nvim.pauseNotification() detected, please avoid it:`, o.stack)
     }
     this.transport.pauseNotification()
@@ -383,14 +401,16 @@ export class NeovimClient extends Neovim {
   }
 
   public resumeNotification(redrawVim?: boolean): Promise<AtomicResult>
-  public resumeNotification(redrawVim: boolean, notify: true): null
-  public resumeNotification(redrawVim?: boolean, notify?: boolean): Promise<AtomicResult> | null {
+  public resumeNotification(redrawVim: boolean, notify: true): void
+  public resumeNotification(redrawVim?: boolean, notify?: boolean): Promise<AtomicResult> | void {
     if (this.isVim && redrawVim) {
       this.transport.notify('nvim_command', ['redraw'])
     }
     if (notify) {
-      this.transport.resumeNotification(true)
-      return Promise.resolve(null)
+      // Fire-and-forget flush: callers never use the result, and the
+      // transport may return null or a promise depending on paused state.
+      void this.transport.resumeNotification(true)
+      return
     }
     return this.transport.resumeNotification()
   }

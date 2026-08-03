@@ -13,7 +13,7 @@ build extension for coc.nvim.
 
 ## Build from source code
 
-Git clone then run `npm install`.
+Git clone then run `bun install`.
 
 ## API
 

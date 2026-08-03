@@ -46,6 +46,12 @@ describe('Nvim Promise API', () => {
     notifications = []
   })
 
+  describe('attach', () => {
+    it('should throw friendly error when no transport is provided', () => {
+      expect(() => attach({})).toThrow('Invalid arguments, could not attach')
+    })
+  })
+
   it('can send requests and receive response', async () => {
     const result = await nvim.eval('{"k1": "v1", "k2": 2}')
     expect(result).toEqual({ k1: 'v1', k2: 2 })

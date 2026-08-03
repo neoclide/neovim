@@ -109,11 +109,11 @@ export class Neovim extends BaseApi {
     return this.request(`${this.prefix}get_namespaces`, [])
   }
 
-  public get commands(): Promise<Object> {
+  public get commands(): Promise<object> {
     return this.getCommands()
   }
 
-  public getCommands(options = {}): Promise<Object> {
+  public getCommands(options = {}): Promise<object> {
     return this.request(`${this.prefix}get_commands`, [options])
   }
 
@@ -365,7 +365,6 @@ export class Neovim extends BaseApi {
 
   /**
    * Runs a command and returns output.
-   *
    * @deprecated Use exec instead.
    */
   public commandOutput(arg: string): Promise<string> {
@@ -397,7 +396,6 @@ export class Neovim extends BaseApi {
 
   /**
    * Send mouse event from GUI. Neovim only.
-   *
    * @param {MouseButton} button Mouse button: one of "left", "right", "middle", "wheel", "move".
    * @param {ButtonAction} action For ordinary buttons, one of "press", "drag", "release".
    * @param {string} modifier String of modifiers each represented by a single char.
@@ -512,14 +510,14 @@ export class Neovim extends BaseApi {
 
   public createAugroup(name: string, option?: AugroupOption): Promise<number>
   public createAugroup(name: string, option: AugroupOption, isNotify: true): void
-  public createAugroup(name: string, option: AugroupOption = {}, isNotify: boolean = false): Promise<number> | void {
+  public createAugroup(name: string, option: AugroupOption = {}, isNotify = false): Promise<number> | void {
     if (!isNotify) return this.request(`${this.prefix}create_augroup`, [name, option])
     this.notify(`${this.prefix}create_augroup`, [name, option])
   }
 
   public createAutocmd(event: string | string[], option?: AutocmdOption): Promise<number>
   public createAutocmd(event: string | string[], option: AutocmdOption, isNotify: true): void
-  public createAutocmd(event: string | string[], option: AutocmdOption = {}, isNotify: boolean = false): Promise<number> | void {
+  public createAutocmd(event: string | string[], option: AutocmdOption = {}, isNotify = false): Promise<number> | void {
     if (!isNotify) return this.request(`${this.prefix}create_autocmd`, [event, option])
     this.notify(`${this.prefix}create_autocmd`, [event, option])
   }

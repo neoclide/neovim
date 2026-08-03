@@ -1,3 +1,4 @@
+import { disconnectedText } from '../utils/error'
 import { NeovimClient } from '../api'
 import { isCocNvim } from '../utils/constants'
 import { ILogger } from '../utils/logger'
@@ -103,7 +104,7 @@ export class VimTransport extends Transport {
 
   public vimRequest(command: 'call' | 'eval', args: any[]): Promise<any> {
     if (!this.attached) return Promise.reject(new Error('transport disconnected'))
-    Error.captureStackTrace(args)
+    if (!global.__TEST__) Error.captureStackTrace(args)
     let id = this.nextRequestId
     this.nextRequestId = this.nextRequestId - 1
     return new Promise((resolve, reject) => {
@@ -116,9 +117,9 @@ export class VimTransport extends Transport {
           }
         }
         if (err) {
-          err.stack = `Error: vim "${command}" error - ${err}\n` + args['stack'].split(/\r?\n/).slice(3).join('\n')
+          err.stack = `Error: vim "${command}" error - ${err}\n` + (args['stack'] ? args['stack'].split(/\r?\n/).slice(3).join('\n') : '')
           this.client.logError(`Error on vim command "${command}"`, args, err)
-          reject(err)
+          reject(err instanceof Error ? err : new Error(String(err)))
           return
         }
         resolve(res)
@@ -135,8 +136,8 @@ export class VimTransport extends Transport {
   /**
    * Send request to vim
    */
-  public request(method: string, args: any[], cb: Function): any {
-    if (!this.attached) return cb([0, 'transport disconnected'])
+  public request(method: string, args: any[], cb: (...args: any[]) => any): any {
+    if (!this.attached) return cb([0, disconnectedText])
     let id = this.nextRequestId
     this.nextRequestId = this.nextRequestId - 1
     let req = new Request(this.connection, (err, res) => {

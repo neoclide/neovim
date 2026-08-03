@@ -1,17 +1,26 @@
-import * as msgpack from '@chemzqm/msgpack-lite'
+import { decode, decodeMultiStream, Encoder, ExtensionCodec } from '@msgpack/msgpack'
+import { disconnectedText } from '../utils/error'
 import { Metadata } from '../api/types'
-import Buffered from '../utils/buffered'
 import { ILogger } from '../utils/logger'
 import Transport, { Response } from './base'
+import { isTester } from '../utils/constants'
+
+// Time limit for a single nvim request. Only enabled in the test
+// environment, where a hung request would otherwise stall the whole test
+// until the test runner's own timeout.
+const REQUEST_TIMEOUT = global.__TEST__ || isTester ? 3000 : 0
 
 export class NvimTransport extends Transport {
-  private pending: Map<number, Function> = new Map()
+  private pending: Map<number, (...args: any[]) => any> = new Map()
   private nextRequestId = 1
-  private encodeStream: any
-  private decodeStream: any
   private reader: NodeJS.ReadableStream
   private writer: NodeJS.WritableStream
-  protected codec: msgpack.Codec
+  private readonly extensionCodec: ExtensionCodec = this.initializeExtensionCodec()
+  private readonly encoder: Encoder = new Encoder({ extensionCodec: this.extensionCodec, ignoreUndefined: true })
+  private readonly extEncoder: Encoder = new Encoder({ ignoreUndefined: true })
+  private decodeIterator: AsyncGenerator<unknown, void, unknown> | undefined
+  private decodeGeneration = 0
+  private onReaderEnd: (() => void) | undefined
   private attached = false
 
   // Neovim client that holds state
@@ -19,20 +28,36 @@ export class NvimTransport extends Transport {
 
   constructor(logger: ILogger) {
     super(logger, false)
+  }
 
-    const codec = this.setupCodec()
-    this.encodeStream = msgpack.createEncodeStream({ codec })
-    this.decodeStream = msgpack.createDecodeStream({ codec })
-    this.decodeStream.on('data', (msg: any[]) => {
-      this.parseMessage(msg)
+  private initializeExtensionCodec(): ExtensionCodec {
+    const codec = new ExtensionCodec()
+    Metadata.forEach(({ constructor }, id: number): void => {
+      codec.register({
+        type: id,
+        encode: (input: any) => {
+          if (input instanceof constructor) {
+            return this.extEncoder.encode(input.data)
+          }
+          return null
+        },
+        decode: data =>
+          new constructor({
+            client: this.client,
+            data: decode(data),
+          }),
+      })
     })
-    this.decodeStream.on('end', () => {
-      this.detach()
-      this.emit('detach')
-    })
+    return codec
+  }
+
+  private encodeToBuffer(value: unknown): Buffer {
+    const encoded = this.encoder.encode(value)
+    return Buffer.from(encoded.buffer, encoded.byteOffset, encoded.byteLength)
   }
 
   private parseMessage(msg: any[]): void {
+    if (!this.attached) return
     const msgType = msg[0]
     this.debugMessage(msg)
 
@@ -69,32 +94,37 @@ export class NvimTransport extends Transport {
       //   - msg[2]: arguments
       this.emit('notification', msg[1].toString(), msg[2])
     } else {
-      // tslint:disable-next-line: no-console
+
       console.error(`Invalid message type ${msgType}`)
     }
   }
 
-  private setupCodec(): msgpack.Codec {
-    const codec = msgpack.createCodec()
+  private createDecodeSource(reader: NodeJS.ReadableStream): any {
+    let readable = reader as any
+    if (typeof readable.iterator === 'function') {
+      return readable.iterator({ destroyOnReturn: false })
+    }
+    return reader
+  }
 
-    Metadata.forEach(
-      ({ constructor }, id: number): void => {
-        codec.addExtPacker(id, constructor, (obj: any) =>
-          msgpack.encode(obj.data)
-        )
-        codec.addExtUnpacker(
-          id,
-          data =>
-            new constructor({
-              client: this.client,
-              data: msgpack.decode(data),
-            })
-        )
+  private async decodeLoop(iter: AsyncGenerator<unknown, void, unknown>, generation: number): Promise<void> {
+    try {
+      while (true) {
+        const resolved = await iter.next()
+        if (resolved.done || !this.attached || iter !== this.decodeIterator || generation !== this.decodeGeneration) return
+        if (Array.isArray(resolved.value)) {
+          this.parseMessage(resolved.value)
+        } else {
+
+          console.error('invalid msgpack-RPC message: expected array')
+        }
       }
-    )
+    } catch (err) {
+      if (iter !== this.decodeIterator || generation !== this.decodeGeneration) return
 
-    this.codec = codec
-    return this.codec
+      console.error('Decode stream error:', err)
+      this.detach()
+    }
   }
 
   public attach(
@@ -102,38 +132,65 @@ export class NvimTransport extends Transport {
     reader: NodeJS.ReadableStream,
     client: any
   ): void {
-    this.encodeStream = this.encodeStream.pipe(writer)
-    const buffered = new Buffered()
-    reader.pipe(buffered).pipe(this.decodeStream)
     this.writer = writer
     this.reader = reader
     this.client = client
     this.attached = true
+    this.decodeGeneration = this.decodeGeneration + 1
+    const generation = this.decodeGeneration
+
+    this.onReaderEnd = () => {
+      this.detach()
+    }
+    this.reader.once('end', this.onReaderEnd)
+
+    const asyncDecodeGenerator = decodeMultiStream(this.createDecodeSource(this.reader), {
+      extensionCodec: this.extensionCodec,
+    })
+    this.decodeIterator = asyncDecodeGenerator
+    void this.decodeLoop(asyncDecodeGenerator, generation)
   }
 
   public detach(): void {
     if (!this.attached) return
     this.attached = false
-    this.encodeStream.unpipe(this.writer)
-    this.reader.unpipe(this.decodeStream)
+    this.decodeGeneration = this.decodeGeneration + 1
+    if (this.onReaderEnd) {
+      this.reader.off('end', this.onReaderEnd)
+      this.onReaderEnd = undefined
+    }
+    let iter = this.decodeIterator
+    this.decodeIterator = undefined
+    if (iter && typeof iter.return === 'function') {
+      void iter.return(undefined).catch(err => {
+        this.debug('decode iterator return error:', err)
+      })
+    }
     for (let handler of this.pending.values()) {
-      handler([0, 'transport disconnected'])
+      handler([0, disconnectedText])
     }
     this.pending.clear()
+    this.emit('detach')
   }
 
-  public request(method: string, args: any[], cb: Function): any {
-    if (!this.attached) return cb([0, 'transport disconnected'])
+  public request(method: string, args: any[], cb: (...args: any[]) => any): any {
+    if (!this.attached) return cb([0, disconnectedText])
     let id = this.nextRequestId
     this.nextRequestId = this.nextRequestId + 1
     let startTs = Date.now()
     this.debug('request to nvim:', id, method, args)
-    this.encodeStream.write(
-      msgpack.encode([0, id, method, args], {
-        codec: this.codec,
-      })
-    )
+    this.writer.write(this.encodeToBuffer([0, id, method, args]))
+    let timer: NodeJS.Timeout | undefined
+    if (REQUEST_TIMEOUT > 0) {
+      timer = setTimeout(() => {
+        let handler = this.pending.get(id)
+        if (!handler) return
+        this.pending.delete(id)
+        handler([0, `Request "${method}" timed out after ${REQUEST_TIMEOUT}ms.`])
+      }, REQUEST_TIMEOUT)
+    }
     this.pending.set(id, (err, res) => {
+      if (timer) clearTimeout(timer)
       this.debug('response of nvim:', id, Date.now() - startTs, res, err)
       cb(err, res)
     })
@@ -149,19 +206,11 @@ export class NvimTransport extends Transport {
       }
     }
     this.debug('nvim notification:', method, args)
-    this.encodeStream.write(
-      msgpack.encode([2, method, args], {
-        codec: this.codec,
-      })
-    )
+    this.writer.write(this.encodeToBuffer([2, method, args]))
   }
 
   public send(arr: any[]): void {
-    this.encodeStream.write(
-      msgpack.encode(arr, {
-        codec: this.codec,
-      })
-    )
+    this.writer.write(this.encodeToBuffer(arr))
   }
 
   public vimCommand(command, ..._args: any[]): void {
@@ -173,7 +222,6 @@ export class NvimTransport extends Transport {
   }
 
   protected createResponse(_method: string, requestId: number): Response {
-    let { encodeStream } = this
     let startTs = Date.now()
     let called = false
     return {
@@ -181,14 +229,12 @@ export class NvimTransport extends Transport {
         if (called || !this.attached) return
         this.debug('response of client:', requestId, `${Date.now() - startTs}ms`, resp, isError == true)
         called = true
-        encodeStream.write(
-          msgpack.encode([
-            1,
-            requestId,
-            isError ? resp : null,
-            !isError ? resp : null,
-          ])
-        )
+        this.writer.write(this.encodeToBuffer([
+          1,
+          requestId,
+          isError ? resp : null,
+          !isError ? resp : null,
+        ]))
       }
     }
   }

@@ -17,6 +17,6 @@
     "outDir": "./lib"
   },
   "include": ["src"],
-  "exclude": [],
+  "exclude": ["src/__tests__"],
   "compileOnSave": false
 }

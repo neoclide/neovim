@@ -78,7 +78,7 @@ export interface ExtmarkDetails {
   priority: number
   hl_group?: string
   virt_text?: [string, string][]
-  virt_lines?: [string, string | string][][]
+  virt_lines?: [string, string][][]
 }
 
 export interface BufferClearHighlight {
@@ -182,11 +182,11 @@ export class Buffer extends BaseApi {
   /**
    * Attach to buffer to listen to buffer events
    * @param sendBuffer Set to true if the initial notification should contain
-   *        the whole buffer. If so, the first notification will be a
-   *        `nvim_buf_lines_event`. Otherwise, the first notification will be
-   *        a `nvim_buf_changedtick_event`
+   * the whole buffer. If so, the first notification will be a
+   * `nvim_buf_lines_event`. Otherwise, the first notification will be
+   * a `nvim_buf_changedtick_event`
    */
-  public async attach(sendBuffer = false, options: {} = {}): Promise<boolean> {
+  public async attach(sendBuffer = false, options: Record<string, unknown> = {}): Promise<boolean> {
     return await this.request(`${this.prefix}attach`, [sendBuffer, options])
   }
 
@@ -233,11 +233,11 @@ export class Buffer extends BaseApi {
     return this.request(`${this.prefix}get_changedtick`, [])
   }
 
-  public get commands(): Promise<Object> {
+  public get commands(): Promise<object> {
     return this.getCommands()
   }
 
-  public getCommands(options = {}): Promise<Object> {
+  public getCommands(options = {}): Promise<object> {
     return this.request(`${this.prefix}get_commands`, [options])
   }
 
@@ -273,7 +273,6 @@ export class Buffer extends BaseApi {
 
   /**
    * Set virtual text for a line, works on nvim >= 0.5.0 and vim9
-   *
    * @public
    * @param {number} src_id - Source group to use or 0 to use a new group, or -1
    * @param {number} line - Line to annotate with virtual text (zero-indexed)
@@ -288,7 +287,6 @@ export class Buffer extends BaseApi {
 
   /**
    * Removes an ext mark by notification.
-   *
    * @public
    * @param {number} ns_id - Namespace id
    * @param {number} id - Extmark id
@@ -302,7 +300,6 @@ export class Buffer extends BaseApi {
 
   /**
    * Gets the position (0-indexed) of an extmark.
-   *
    * @param {number} ns_id - Namespace id
    * @param {number} id - Extmark id
    * @param {Object} opts - Optional parameters.
@@ -320,9 +317,8 @@ export class Buffer extends BaseApi {
    * positions define the bounds). 0 and -1 are understood as (0,0) and (-1,-1)
    * respectively, thus the following are equivalent:
    *
-   *     nvim_buf_get_extmarks(0, my_ns, 0, -1, {})
-   *     nvim_buf_get_extmarks(0, my_ns, [0,0], [-1,-1], {})
-   *
+   * nvim_buf_get_extmarks(0, my_ns, 0, -1, {})
+   * nvim_buf_get_extmarks(0, my_ns, [0,0], [-1,-1], {})
    * @param {number} ns_id - Namespace id
    * @param {[number, number] | number} start
    * @param {[number, number] | number} end
@@ -335,7 +331,6 @@ export class Buffer extends BaseApi {
 
   /**
    * Creates or updates an extmark by notification, `:h nvim_buf_set_extmark`.
-   *
    * @param {number} ns_id
    * @param {number} line
    * @param {number} col
@@ -352,7 +347,7 @@ export class Buffer extends BaseApi {
   }
 
   /** Insert lines at `start` index */
-  insert(lines: string[] | string, start: number) {
+  public insert(lines: string[] | string, start: number) {
     return this.setLines(lines, {
       start,
       end: start,
@@ -361,7 +356,7 @@ export class Buffer extends BaseApi {
   }
 
   /** Replace lines starting at `start` index */
-  replace(_lines: string[] | string, start: number) {
+  public replace(_lines: string[] | string, start: number) {
     const lines = typeof _lines === 'string' ? [_lines] : _lines
     return this.setLines(lines, {
       start,
@@ -371,12 +366,12 @@ export class Buffer extends BaseApi {
   }
 
   /** Remove lines at index */
-  remove(start: number, end: number, strictIndexing = false) {
+  public remove(start: number, end: number, strictIndexing = false) {
     return this.setLines([], { start, end, strictIndexing })
   }
 
   /** Append a string or list of lines to end of buffer */
-  append(lines: string[] | string) {
+  public append(lines: string[] | string) {
     return this.setLines(lines, {
       start: -1,
       end: -1,
@@ -427,9 +422,9 @@ export class Buffer extends BaseApi {
   }
 
   /**
- * Checks if a buffer is valid and loaded. See |api-buffer| for
- * more info about unloaded buffers.
- */
+   * Checks if a buffer is valid and loaded. See |api-buffer| for
+   * more info about unloaded buffers.
+   */
   public get loaded(): Promise<boolean> {
     return this.request(`${this.prefix}is_loaded`, [])
   }
@@ -445,7 +440,6 @@ export class Buffer extends BaseApi {
    *
    * Unlike |line2byte()|, throws error for out-of-bounds indexing.
    * Returns -1 for unloaded buffer.
-   *
    * @return {Number} Integer byte offset, or -1 for unloaded buffer.
    */
   public getOffset(index: number): Promise<number> {
@@ -453,28 +447,29 @@ export class Buffer extends BaseApi {
   }
 
   /**
-    Adds a highlight to buffer.
-
-    This can be used for plugins which dynamically generate
-    highlights to a buffer (like a semantic highlighter or
-    linter). The function adds a single highlight to a buffer.
-    Unlike matchaddpos() highlights follow changes to line
-    numbering (as lines are inserted/removed above the highlighted
-    line), like signs and marks do.
-
-    "src_id" is useful for batch deletion/updating of a set of
-    highlights. When called with src_id = 0, an unique source id
-    is generated and returned. Succesive calls can pass in it as
-    "src_id" to add new highlights to the same source group. All
-    highlights in the same group can then be cleared with
-    nvim_buf_clear_namespace. If the highlight never will be
-    manually deleted pass in -1 for "src_id".
-
-    If "hl_group" is the empty string no highlight is added, but a
-    new src_id is still returned. This is useful for an external
-    plugin to synchrounously request an unique src_id at
-    initialization, and later asynchronously add and clear
-    highlights in response to buffer changes. */
+   * Adds a highlight to buffer.
+   *
+   * This can be used for plugins which dynamically generate
+   * highlights to a buffer (like a semantic highlighter or
+   * linter). The function adds a single highlight to a buffer.
+   * Unlike matchaddpos() highlights follow changes to line
+   * numbering (as lines are inserted/removed above the highlighted
+   * line), like signs and marks do.
+   *
+   * "src_id" is useful for batch deletion/updating of a set of
+   * highlights. When called with src_id = 0, an unique source id
+   * is generated and returned. Successive calls can pass in it as
+   * "src_id" to add new highlights to the same source group. All
+   * highlights in the same group can then be cleared with
+   * nvim_buf_clear_namespace. If the highlight never will be
+   * manually deleted pass in -1 for "src_id".
+   *
+   * If "hl_group" is the empty string no highlight is added, but a
+   * new src_id is still returned. This is useful for an external
+   * plugin to synchrounously request an unique src_id at
+   * initialization, and later asynchronously add and clear
+   * highlights in response to buffer changes.
+   */
   public addHighlight({
     hlGroup,
     line,
@@ -498,11 +493,10 @@ export class Buffer extends BaseApi {
   }
 
   /**
-   * Clear highlights of specified lins.
-   *
+   * Clear highlights of specified lines.
    * @deprecated use clearNamespace() instead.
    */
-  clearHighlight(args: BufferClearHighlight = {}) {
+  public clearHighlight(args: BufferClearHighlight = {}) {
     const defaults = {
       srcId: -1,
       lineStart: 0,
@@ -520,7 +514,6 @@ export class Buffer extends BaseApi {
 
   /**
    * Add highlight to ranges by notification.
-   *
    * @param {string | number} srcId Unique key or namespace number.
    * @param {string} hlGroup Highlight group.
    * @param {Range[]} ranges List of highlight ranges
@@ -531,18 +524,16 @@ export class Buffer extends BaseApi {
 
   /**
    * Clear namespace by id or name.
-   *
    * @param key Unique key or namespace number, use -1 for all namespaces
    * @param lineStart Start of line, 0 based, default to 0.
    * @param lineEnd End of line, 0 based, default to -1.
    */
-  clearNamespace(key: number | string, lineStart = 0, lineEnd = -1) {
+  public clearNamespace(key: number | string, lineStart = 0, lineEnd = -1) {
     this.client.call('coc#highlight#clear_highlight', [this.id, key, lineStart, lineEnd], true)
   }
 
   /**
    * Add sign to buffer by notification.
-   *
    * @param {SignPlaceOption} sign
    * @returns {void}
    */
@@ -563,7 +554,6 @@ export class Buffer extends BaseApi {
 
   /**
    * Get signs by group name or id and lnum.
-   *
    * @param {SignPlacedOption} opts
    * @returns {Promise<SignItem[]>}
    */
@@ -574,7 +564,6 @@ export class Buffer extends BaseApi {
 
   /**
    * Get highlight items by name space (end inclusive).
-   *
    * @param {string} ns Namespace key.
    * @param {number} start 0 based line number.
    * @param {number} end 0 based line number.
@@ -597,7 +586,6 @@ export class Buffer extends BaseApi {
 
   /**
    * Update highlight items by notification.
-   *
    * @param {string | number} ns Namespace key or id.
    * @param {HighlightItem[]} highlights Highlight items.
    * @param {HighlightOption} opts Optional options.
@@ -623,7 +611,7 @@ export class Buffer extends BaseApi {
   /**
    * Listens to buffer for events
    */
-  public listen(eventName: string, cb: Function, disposables?: Disposable[]): void {
+  public listen(eventName: string, cb: (...args: any[]) => void, disposables?: Disposable[]): void {
     this.client.attachBufferEvent(this.id, eventName, cb)
     if (disposables) {
       disposables.push({
