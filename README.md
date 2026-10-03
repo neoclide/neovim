@@ -13,7 +13,10 @@ build extension for coc.nvim.
 
 ## Build from source code
 
-Git clone then run `bun install`.
+Use Node.js 20.17 or newer and npm 11.9.0 for development.
+
+Git clone then run `npm ci`. Run `npm run build`, `npm run lint`, and
+`npm test` to validate changes. The tests require Vim 9 and Neovim.
 
 ## API
 
